@@ -818,9 +818,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 24, 34, 0.82);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  /* fully opaque: nothing shows through while a region loads */
+  background:
+    radial-gradient(ellipse at 50% 118%, rgba(255,138,61,0.22), transparent 55%),
+    radial-gradient(ellipse at 50% -10%, rgba(43,108,176,0.18), transparent 60%),
+    var(--bloom-dark);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease;

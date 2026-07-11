@@ -17,20 +17,20 @@
       <span class="brand-sub">Solar Coverage Map</span>
     </div>
     <nav id="breadcrumb">
-      <button class="crumb active" data-level="global">Global</button>
+      <button class="crumb active">USA</button>
     </nav>
   </header>
 
   <main id="map"></main>
 
   <aside id="legend">
-    <h3>Uncovered Opportunity</h3>
+    <h3 id="legend-title">Renewable Coverage</h3>
     <div class="legend-bar"></div>
     <div class="legend-labels">
-      <span>Low</span>
-      <span>High</span>
+      <span>No coverage</span>
+      <span>Full coverage</span>
     </div>
-    <p id="legend-hint">Click a hotspot to drill in. Darker red = more homes without solar.</p>
+    <p id="legend-hint">Share of households on renewable energy, by state. Click a state to drill in.</p>
   </aside>
 
   <div id="info-panel" class="hidden">
@@ -39,7 +39,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="js/geo-data.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
 </body>

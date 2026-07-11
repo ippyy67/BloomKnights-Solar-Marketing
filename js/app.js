@@ -77,37 +77,11 @@ function setLegend(title, hint) {
   document.getElementById('legend-hint').textContent = hint;
 }
 
-function createHomeMarker(home) {
-  const marker = L.marker([home.lat, home.lng], {
-    icon: L.divIcon({
-      html: '<div class="sample-home-marker" title="' + home.street + '"></div>',
-      className: 'sample-home-marker-wrapper',
-      iconSize: [24, 24],
-      iconAnchor: [12, 24],
-    }),
-    riseOnHover: true,
-  }).addTo(markerLayer);
-
-  marker.bindTooltip(home.street, { direction: 'top' });
-  marker.bindPopup(`<b>${home.street}</b><br/>${Math.round(home.opportunity * 100)}% homes without solar`);
-
-  marker.on('click', () => {
-    showInfoPanel(`
-      <h4>${home.street} — Sample Home</h4>
-      <div class="stat"><span>Homes without solar</span><span>${home.homesWithoutSolar}</span></div>
-      <div class="stat"><span>Avg. roof size</span><span>${home.avgRoofSqft} sqft</span></div>
-      <div class="stat"><span>Est. annual savings</span><span>$${home.estAnnualSavings}</span></div>
-      <div class="stat"><span>Opportunity score</span><span>${Math.round(home.opportunity * 100)}%</span></div>
-    `);
-  });
-
-  return marker;
-}
-
 function showInfoPanel(html, options) {
   const panel = document.getElementById('info-panel');
   const detailMode = options && options.detailMode;
-  panel.classList.toggle('detail-view', detailMode);
+  panel.classList.toggle('detail-view', !!detailMode);
+  panel.classList.toggle('docked', !!(options && options.dock));
   document.getElementById('info-content').innerHTML = html;
   panel.classList.remove('hidden');
 }
@@ -148,14 +122,20 @@ function showNeighborhoodListings(hood) {
     <h4>${hood.name} — Home listings</h4>
     <p class="hood-tag">${pct(hood.coverage)} renewable coverage · ~${fmt(hood.uncovered)} homes without renewables</p>
     <div class="listing-grid">${cards}</div>
-  `, { detailMode: false });
+  `, { detailMode: false, dock: currentLevel === 'hood' });
 
   document.querySelectorAll('.listing-card').forEach((card) => {
     card.onclick = () => {
       const address = card.getAttribute('data-address');
       const listing = listings.find((item) => item.address === address);
       if (!listing) return;
-      showInfoPanel(`
+      showListingDetail(listing, hood);
+    };
+  });
+}
+
+function showListingDetail(listing, hood) {
+  showInfoPanel(`
         <button class="detail-back" id="listing-back">← Back to listings</button>
         <div class="listing-detail-card">
           <div class="listing-topline">
@@ -187,13 +167,11 @@ function showNeighborhoodListings(hood) {
             <p>${listing.note}</p>
           </div>
         </div>
-      `, { detailMode: true });
-      const backButton = document.getElementById('listing-back');
-      if (backButton) {
-        backButton.onclick = () => showNeighborhoodListings(hood);
-      }
-    };
-  });
+  `, { detailMode: true, dock: currentLevel === 'hood' });
+  const backButton = document.getElementById('listing-back');
+  if (backButton) {
+    backButton.onclick = () => showNeighborhoodListings(hood);
+  }
 }
 
 function hideInfoPanel() {
@@ -411,7 +389,7 @@ function goCity(city, opts) {
           h.coverage,
           '<b>' + h.name + '</b><br/>' + pct(h.coverage) + ' coverage · ~' + fmt(h.uncovered) + ' homes without renewables' + (clickable ? '<br/>— click to view listings —' : ''),
           clickable,
-          () => showNeighborhoodListings(h)
+          () => goHood(h)
         );
       });
   };
@@ -454,7 +432,52 @@ function addHouseRect(house, hoodName, halfLat, halfLng, emphasized) {
     fillOpacity: 0.95,
   }).addTo(houseLayer);
   dot.bindTooltip(house.address + ' — ' + pct(house.coverage) + ' renewable', { direction: 'top' });
-  dot.on('click', () => showInfoPanel(houseInfoHtml(house, hoodName)));
+  // Hover-only: just the two hero listings are clickable in the demo.
+}
+
+// ---- Hero homes: the two clickable, card-backed listings ---------------------
+function addHeroDot(house, listing, hood) {
+  L.circleMarker([house.lat, house.lng], {
+    radius: 14,
+    color: '#ff8a3d',
+    weight: 2,
+    dashArray: '5 5',
+    fill: false,
+    interactive: false,
+  }).addTo(houseLayer);
+  const dot = L.circleMarker([house.lat, house.lng], {
+    radius: 8,
+    color: '#ffffff',
+    weight: 2,
+    fillColor: colorForCoverage(house.coverage),
+    fillOpacity: 1,
+  }).addTo(houseLayer);
+  dot.bindTooltip('<b>' + listing.address + '</b><br/>' + listing.coverage + ' solar coverage — click for the full card', { direction: 'top' });
+  dot.on('click', () => showListingDetail(listing, hood));
+}
+
+// Pin each hero listing to the rendered house whose coverage best matches it,
+// so the dots always sit on real buildings in both OSM and fallback modes.
+function placeHeroDots(houses, hood) {
+  const listings = NEIGHBORHOOD_LISTINGS[hood.name] || [];
+  const heroes = [
+    { address: HERO_LEAD_ADDRESS, target: 0.14 },
+    { address: HERO_COVERED_ADDRESS, target: 0.86 },
+  ];
+  const used = [];
+  heroes.forEach((hero) => {
+    const listing = listings.find((l) => l.address === hero.address);
+    if (!listing || !houses.length) return;
+    let best = null, bestDiff = Infinity;
+    houses.forEach((h) => {
+      if (used.indexOf(h) !== -1) return;
+      const diff = Math.abs(h.coverage - hero.target);
+      if (diff < bestDiff) { bestDiff = diff; best = h; }
+    });
+    if (!best) return;
+    used.push(best);
+    addHeroDot(Object.assign({}, best, { coverage: hero.target }), listing, hood);
+  });
 }
 
 // Real-OSM renderer: every building in the viewport is a colored, hoverable,
@@ -466,8 +489,9 @@ function renderRealHood(hood, data) {
   });
   setLegend(
     hood.name + ' — Lead Map',
-    'Every building is real (OpenStreetMap). Blue = on renewables, red = no coverage. Click any home.'
+    'Blue = on renewables, red = no coverage. Click a ringed home — or browse the cards on the right.'
   );
+  return data.houses;
 }
 
 // Fallback renderer: our own drawn plat (only if the OSM fetch failed)
@@ -495,8 +519,9 @@ function renderPlatHood(hood) {
   });
   setLegend(
     hood.name + ' — Lead Map',
-    'Each dot is a home: blue = on renewables, red = no coverage (lead). Click a home for details. (Offline mode: modeled parcels)'
+    'Each dot is a home: blue = on renewables, red = no coverage. Click a ringed home — or browse the cards on the right. (Offline mode)'
   );
+  return plat.houses;
 }
 
 function goHood(hood, opts) {
@@ -511,11 +536,15 @@ function goHood(hood, opts) {
     fetchRealHood()
       .then((raw) => {
         if (mySeq !== viewSeq || currentLevel !== 'hood') return;
-        renderRealHood(hood, buildRealHood(raw));
+        const houses = renderRealHood(hood, buildRealHood(raw));
+        placeHeroDots(houses, hood);
+        showNeighborhoodListings(hood);
       })
       .catch(() => {
         if (mySeq !== viewSeq || currentLevel !== 'hood') return;
-        renderPlatHood(hood);
+        const houses = renderPlatHood(hood);
+        placeHeroDots(houses, hood);
+        showNeighborhoodListings(hood);
       });
   };
 

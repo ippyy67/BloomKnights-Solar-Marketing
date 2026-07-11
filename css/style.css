@@ -466,3 +466,32 @@ html, body {
   border: 1px solid rgba(28, 35, 49, 0.8);
   border-radius: 2px;
 }
+
+/* ---- Docked (Zillow-style) right rail for the neighborhood view ---- */
+#info-panel.docked {
+  top: 76px;
+  right: 12px;
+  bottom: 12px;
+  left: auto;
+  transform: none;
+  width: min(31vw, 420px);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+#info-panel.docked #info-content {
+  max-height: none;
+  flex: 1;
+}
+
+#info-panel.docked .listing-grid {
+  grid-template-columns: 1fr;
+}
+
+#info-panel.docked.detail-view {
+  left: auto;
+  right: 12px;
+  transform: none;
+  width: min(31vw, 420px);
+}

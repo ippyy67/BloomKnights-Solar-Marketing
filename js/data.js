@@ -109,7 +109,7 @@ const NEIGHBORHOOD_LISTINGS = {
     { address: '1655 Bloom Ave', coverage: '31%', solarInstalled: 'Yes', roofSqft: '1,480', estSavings: '$980/yr', badge: 'Warm lead', note: 'Ideal for a targeted outreach push', score: 74, utilityBill: '$164/mo', shade: 'Medium' },
     { address: '1912 Cedar Xing', coverage: '19%', solarInstalled: 'No', roofSqft: '1,760', estSavings: '$1,310/yr', badge: 'Queue next', note: 'Open roof area with good exposure', score: 79, utilityBill: '$186/mo', shade: 'Low' },
     { address: '2087 Solar Way', coverage: '27%', solarInstalled: 'No', roofSqft: '1,840', estSavings: '$1,410/yr', badge: 'Budget fit', note: 'Strong potential for a lower-cost install', score: 87, utilityBill: '$192/mo', shade: 'Low' },
-    { address: '1736 Palm Ct', coverage: '35%', solarInstalled: 'Yes', roofSqft: '1,560', estSavings: '$1,080/yr', badge: 'Follow up', note: 'Existing setup suggests a strong upsell path', score: 77, utilityBill: '$171/mo', shade: 'Medium' },
+    { address: '1736 Palm Ct', coverage: '86%', solarInstalled: 'Yes', roofSqft: '1,560', estSavings: '$310/yr', badge: 'Covered', note: 'Already on renewables — the reference home for this street', score: 38, utilityBill: '$104/mo', shade: 'Low' },
     { address: '2210 Knight Grove Rd', coverage: '16%', solarInstalled: 'No', roofSqft: '1,720', estSavings: '$1,260/yr', badge: 'Fresh lead', note: 'Wide roof with minimal tree obstruction', score: 84, utilityBill: '$184/mo', shade: 'Low' },
     { address: '2398 Silver Pine Dr', coverage: '24%', solarInstalled: 'No', roofSqft: '1,900', estSavings: '$1,450/yr', badge: 'Strong fit', note: 'Great roof geometry and high utility spend', score: 89, utilityBill: '$205/mo', shade: 'Low' },
   ],
@@ -127,6 +127,11 @@ const NEIGHBORHOOD_LISTINGS = {
     { address: '711 Lakefront Dr', coverage: '63%', solarInstalled: 'No', roofSqft: '2,100', estSavings: '$1,450/yr', badge: 'Open lane', note: 'Excellent roofline and very good sun exposure', score: 87, utilityBill: '$199/mo', shade: 'Low' },
   ],
 };
+
+// The two functional demo homes (Zillow-style cards + clickable map dots):
+// a hot lead with poor coverage, and a fully covered reference home.
+const HERO_LEAD_ADDRESS = '2148 Sun Meadow Ln';
+const HERO_COVERED_ADDRESS = '1736 Palm Ct';
 
 // ---- Level 4a: REAL Pine Hills buildings from OpenStreetMap ------------------
 // Bbox = the residential pocket just east of Pine Hills Rd / north of Silver

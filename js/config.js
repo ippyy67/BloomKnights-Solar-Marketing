@@ -5,4 +5,5 @@
  * recording, or set it once in the browser console instead:
  *   localStorage.setItem('GEMINI_API_KEY', 'YOUR-KEY')
  */
-window.GEMINI_API_KEY = '';
+// Prefer js/secrets.js (gitignored). This fallback only applies if it's absent.
+window.GEMINI_API_KEY = window.GEMINI_API_KEY || '';

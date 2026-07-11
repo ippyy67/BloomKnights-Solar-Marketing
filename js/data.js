@@ -102,6 +102,32 @@ const ORLANDO_HOODS = [
 
 const HERO_HOOD_NAME = 'Pine Hills';
 
+const NEIGHBORHOOD_LISTINGS = {
+  'Pine Hills': [
+    { address: '2148 Sun Meadow Ln', coverage: '14%', solarInstalled: 'No', roofSqft: '1,620', estSavings: '$1,240/yr', badge: 'Fast fit', note: 'Large roof and strong savings upside', score: 82, utilityBill: '$178/mo', shade: 'Low' },
+    { address: '1820 Willow Bend St', coverage: '22%', solarInstalled: 'No', roofSqft: '1,940', estSavings: '$1,540/yr', badge: 'High match', note: 'Great roof profile for solar conversion', score: 91, utilityBill: '$201/mo', shade: 'Low' },
+    { address: '1655 Bloom Ave', coverage: '31%', solarInstalled: 'Yes', roofSqft: '1,480', estSavings: '$980/yr', badge: 'Warm lead', note: 'Ideal for a targeted outreach push', score: 74, utilityBill: '$164/mo', shade: 'Medium' },
+    { address: '1912 Cedar Xing', coverage: '19%', solarInstalled: 'No', roofSqft: '1,760', estSavings: '$1,310/yr', badge: 'Queue next', note: 'Open roof area with good exposure', score: 79, utilityBill: '$186/mo', shade: 'Low' },
+    { address: '2087 Solar Way', coverage: '27%', solarInstalled: 'No', roofSqft: '1,840', estSavings: '$1,410/yr', badge: 'Budget fit', note: 'Strong potential for a lower-cost install', score: 87, utilityBill: '$192/mo', shade: 'Low' },
+    { address: '1736 Palm Ct', coverage: '35%', solarInstalled: 'Yes', roofSqft: '1,560', estSavings: '$1,080/yr', badge: 'Follow up', note: 'Existing setup suggests a strong upsell path', score: 77, utilityBill: '$171/mo', shade: 'Medium' },
+    { address: '2210 Knight Grove Rd', coverage: '16%', solarInstalled: 'No', roofSqft: '1,720', estSavings: '$1,260/yr', badge: 'Fresh lead', note: 'Wide roof with minimal tree obstruction', score: 84, utilityBill: '$184/mo', shade: 'Low' },
+    { address: '2398 Silver Pine Dr', coverage: '24%', solarInstalled: 'No', roofSqft: '1,900', estSavings: '$1,450/yr', badge: 'Strong fit', note: 'Great roof geometry and high utility spend', score: 89, utilityBill: '$205/mo', shade: 'Low' },
+  ],
+  'Winter Park': [
+    { address: '2001 Park Ave', coverage: '76%', solarInstalled: 'Yes', roofSqft: '2,360', estSavings: '$1,860/yr', badge: 'High value', note: 'Premium roofline with strong rooftop potential', score: 95, utilityBill: '$242/mo', shade: 'Low' },
+    { address: '1112 Lakeview Dr', coverage: '68%', solarInstalled: 'No', roofSqft: '2,040', estSavings: '$1,620/yr', badge: 'Sunny roof', note: 'Excellent fit for a solar upgrade', score: 90, utilityBill: '$218/mo', shade: 'Low' },
+    { address: '1504 Orange Grove Rd', coverage: '71%', solarInstalled: 'Yes', roofSqft: '2,180', estSavings: '$1,740/yr', badge: 'High match', note: 'Shaded roof sections but still a strong case', score: 88, utilityBill: '$228/mo', shade: 'Medium' },
+    { address: '1222 Magnolia St', coverage: '64%', solarInstalled: 'No', roofSqft: '2,090', estSavings: '$1,580/yr', badge: 'Good fit', note: 'Large south-facing roof area', score: 86, utilityBill: '$214/mo', shade: 'Low' },
+    { address: '1308 Willow Ave', coverage: '73%', solarInstalled: 'Yes', roofSqft: '2,300', estSavings: '$1,790/yr', badge: 'Hot lead', note: 'Very strong roof exposure and utility profile', score: 93, utilityBill: '$239/mo', shade: 'Low' },
+  ],
+  'Baldwin Park': [
+    { address: '780 Newbury St', coverage: '61%', solarInstalled: 'Yes', roofSqft: '1,980', estSavings: '$1,420/yr', badge: 'Great fit', note: 'Modern roofline and attractive savings', score: 85, utilityBill: '$197/mo', shade: 'Low' },
+    { address: '815 Harbor Dr', coverage: '58%', solarInstalled: 'No', roofSqft: '1,860', estSavings: '$1,310/yr', badge: 'Warm lead', note: 'Good roof geometry for a straightforward install', score: 83, utilityBill: '$191/mo', shade: 'Medium' },
+    { address: '902 Market Ave', coverage: '66%', solarInstalled: 'Yes', roofSqft: '2,040', estSavings: '$1,470/yr', badge: 'Strong value', note: 'High-utility roof with existing solar readiness', score: 89, utilityBill: '$204/mo', shade: 'Low' },
+    { address: '711 Lakefront Dr', coverage: '63%', solarInstalled: 'No', roofSqft: '2,100', estSavings: '$1,450/yr', badge: 'Open lane', note: 'Excellent roofline and very good sun exposure', score: 87, utilityBill: '$199/mo', shade: 'Low' },
+  ],
+};
+
 // ---- Level 4a: REAL Pine Hills buildings from OpenStreetMap ------------------
 // Bbox = the residential pocket just east of Pine Hills Rd / north of Silver
 // Star Rd. ~0.7 x 1.0 km -> a few hundred buildings, small enough to fetch

@@ -104,9 +104,96 @@ function createHomeMarker(home) {
   return marker;
 }
 
-function showInfoPanel(html) {
+function showInfoPanel(html, options) {
+  const panel = document.getElementById('info-panel');
+  const detailMode = options && options.detailMode;
+  panel.classList.toggle('detail-view', detailMode);
   document.getElementById('info-content').innerHTML = html;
-  document.getElementById('info-panel').classList.remove('hidden');
+  panel.classList.remove('hidden');
+}
+
+function showNeighborhoodListings(hood) {
+  const listings = NEIGHBORHOOD_LISTINGS[hood.name] || [
+    {
+      address: '123 ' + hood.name + ' Ave',
+      coverage: '27%',
+      solarInstalled: 'No',
+      roofSqft: '1,760',
+      estSavings: '$1,100/yr',
+      badge: 'Open home',
+      note: 'Solid roof profile and strong conversion potential',
+      score: 81,
+      utilityBill: '$182/mo',
+      shade: 'Low',
+    },
+  ];
+
+  const cards = listings.map((listing) => `
+    <article class="listing-card" data-address="${listing.address}">
+      <div class="listing-topline">
+        <strong>${listing.address}</strong>
+        <span class="listing-badge">${listing.badge}</span>
+      </div>
+      <div class="listing-metrics">
+        <div><span>Solar coverage</span><strong>${listing.coverage}</strong></div>
+        <div><span>Solar installed</span><strong>${listing.solarInstalled}</strong></div>
+        <div><span>Roof size</span><strong>${listing.roofSqft} sqft</strong></div>
+        <div><span>Est. savings</span><strong>${listing.estSavings}</strong></div>
+      </div>
+      <p>${listing.note}</p>
+    </article>
+  `).join('');
+
+  showInfoPanel(`
+    <h4>${hood.name} — Home listings</h4>
+    <p class="hood-tag">${pct(hood.coverage)} renewable coverage · ~${fmt(hood.uncovered)} homes without renewables</p>
+    <div class="listing-grid">${cards}</div>
+  `, { detailMode: false });
+
+  document.querySelectorAll('.listing-card').forEach((card) => {
+    card.onclick = () => {
+      const address = card.getAttribute('data-address');
+      const listing = listings.find((item) => item.address === address);
+      if (!listing) return;
+      showInfoPanel(`
+        <button class="detail-back" id="listing-back">← Back to listings</button>
+        <div class="listing-detail-card">
+          <div class="listing-topline">
+            <strong>${listing.address}</strong>
+            <span class="listing-badge">${listing.badge}</span>
+          </div>
+          <div class="listing-detail-hero">
+            <div>
+              <div class="detail-label">Match score</div>
+              <div class="detail-value">${listing.score}/100</div>
+            </div>
+            <div>
+              <div class="detail-label">Utility bill</div>
+              <div class="detail-value">${listing.utilityBill}</div>
+            </div>
+          </div>
+          <div class="listing-metrics detail-metrics">
+            <div><span>Solar coverage</span><strong>${listing.coverage}</strong></div>
+            <div><span>Solar installed</span><strong>${listing.solarInstalled}</strong></div>
+            <div><span>Roof size</span><strong>${listing.roofSqft} sqft</strong></div>
+            <div><span>Est. savings</span><strong>${listing.estSavings}</strong></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Shade</div>
+            <div class="detail-value">${listing.shade}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Why it matters</div>
+            <p>${listing.note}</p>
+          </div>
+        </div>
+      `, { detailMode: true });
+      const backButton = document.getElementById('listing-back');
+      if (backButton) {
+        backButton.onclick = () => showNeighborhoodListings(hood);
+      }
+    };
+  });
 }
 
 function hideInfoPanel() {
@@ -322,9 +409,9 @@ function goCity(city, opts) {
           [h.lat, h.lng],
           r,
           h.coverage,
-          '<b>' + h.name + '</b><br/>' + pct(h.coverage) + ' coverage · ~' + fmt(h.uncovered) + ' homes without renewables' + (clickable ? '<br/>— click to open the lead map —' : ''),
+          '<b>' + h.name + '</b><br/>' + pct(h.coverage) + ' coverage · ~' + fmt(h.uncovered) + ' homes without renewables' + (clickable ? '<br/>— click to view listings —' : ''),
           clickable,
-          () => goHood(h)
+          () => showNeighborhoodListings(h)
         );
       });
   };
@@ -335,7 +422,7 @@ function goCity(city, opts) {
     populate,
   });
 
-  setLegend(city.name + ' — Neighborhood Coverage', 'Hover a bubble for neighborhood stats — click Pine Hills to open the house-level lead map.');
+  setLegend(city.name + ' — Neighborhood Coverage', 'Hover a bubble for neighborhood stats — click Pine Hills to open nearby home listings.');
   renderBreadcrumb([
     { label: 'USA', go: () => goUSA() },
     { label: stateName(selectedAbbr), go: () => goState(selectedAbbr) },

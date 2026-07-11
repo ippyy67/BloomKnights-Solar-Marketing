@@ -424,9 +424,16 @@ function goCity(city, opts) {
       });
   };
 
-  const b = L.latLngBounds(ORLANDO_HOODS.map((h) => [h.lat, h.lng]));
+  // Frame only the core cluster of neighborhoods (outliers like Lake Nona
+  // would zoom the camera out and expose how little of Orlando is mapped).
+  const clat = ORLANDO_HOODS.reduce((a, h) => a + h.lat, 0) / ORLANDO_HOODS.length;
+  const clng = ORLANDO_HOODS.reduce((a, h) => a + h.lng, 0) / ORLANDO_HOODS.length;
+  const dists = ORLANDO_HOODS.map((h) => Math.hypot(h.lat - clat, h.lng - clng)).sort((a, b) => a - b);
+  const medDist = dists[Math.floor(dists.length / 2)];
+  const core = ORLANDO_HOODS.filter((h) => Math.hypot(h.lat - clat, h.lng - clng) <= Math.max(medDist * 2.2, 0.02));
+  const b = L.latLngBounds((core.length >= 3 ? core : ORLANDO_HOODS).map((h) => [h.lat, h.lng]));
   transition({
-    fly: fly ? () => map.flyToBounds(b.pad(0.22), { duration: 0.7 }) : null,
+    fly: fly ? () => map.flyToBounds(b.pad(0.06), { duration: 0.7 }) : null,
     populate,
   });
 

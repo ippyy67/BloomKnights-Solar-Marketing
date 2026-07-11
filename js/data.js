@@ -109,8 +109,8 @@ const NEIGHBORHOOD_LISTINGS = {
       estSavings: '$1,240/yr', badge: 'Hot lead', note: 'Large roof and strong savings upside',
       score: 82, utilityBill: '$178/mo', shade: 'Low',
       // Demo photo (hotlinked; photoFallback used if primary fails to load)
-      photo: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=900&q=75&fm=jpg',
-      photoFallback: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=900&q=75&fm=jpg',
+      photo: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1000',
+      photoFallback: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1000',
       beds: 3, baths: 2, homeSqft: '1,860', yearBuilt: 2004,
       roofType: 'Asphalt shingle', roofAge: '6 yrs', orientation: 'South-facing', sunHours: '5.8 hrs/day',
       systemSize: '7.2 kW', installEstimate: '$18,400', paybackYears: '7.1 yrs',

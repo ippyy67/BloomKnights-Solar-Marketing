@@ -489,11 +489,29 @@ html, body {
   grid-template-columns: 1fr;
 }
 
+/* Detail card expands to a centered, Zillow-style modal until closed */
+#info-panel.detail-view,
 #info-panel.docked.detail-view {
-  left: auto;
-  right: 12px;
-  transform: none;
-  width: min(31vw, 420px);
+  top: 76px;
+  bottom: 24px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(54vw, 700px);
+  max-width: calc(100vw - 48px);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+}
+
+#info-panel.detail-view #info-content {
+  max-height: none;
+  flex: 1;
+}
+
+#info-panel.detail-view .detail-photo {
+  height: 260px;
 }
 
 /* ---- Zillow-style detail card ---- */

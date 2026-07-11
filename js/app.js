@@ -159,7 +159,6 @@ function showListingDetail(listing, hood) {
     ['Install estimate', listing.installEstimate],
     ['Payback period', listing.paybackYears],
     ['Incentives', listing.incentives],
-    ['Est. savings', listing.estSavings],
     ['Match score', listing.score != null ? listing.score + '/100' : null],
   ].filter((row) => row[1])
     .map((row) => `<div><span>${row[0]}</span><strong>${row[1]}</strong></div>`).join('');
@@ -176,7 +175,7 @@ function showListingDetail(listing, hood) {
       <div class="detail-address">${listing.address}</div>
       <p class="hood-tag">${hood.name} · Orlando, FL</p>
       <div class="stat-strip">
-        <div><strong>${listing.coverage}</strong><span>solar coverage</span></div>
+        <div><strong>${listing.estSavings}</strong><span>est. savings</span></div>
         <div><strong>${listing.roofSqft}</strong><span>sqft roof</span></div>
         <div><strong>${listing.utilityBill}</strong><span>utility bill</span></div>
       </div>

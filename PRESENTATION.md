@@ -70,10 +70,11 @@ drop-in production data path.** Concretely:
 
 Shorter version if asked point-blank "is this data real?":
 
-> "The map and buildings are real; the solar metrics are modeled for the demo.
-> The pipeline doesn't care — every number on screen flows through the same
-> path a production feed would use, and we can name the exact API each one
-> would come from."
+> "The map and buildings are real, and on the featured home the solar numbers
+> are real too — peak sun hours from NREL's Solar Resource API and
+> production, savings, and payback from NREL PVWatts, live at those
+> coordinates. The remaining fields are modeled for the demo, and each one
+> has a named production API it would come from."
 
 ## Production data sources (name-drop list)
 
@@ -86,4 +87,4 @@ Shorter version if asked point-blank "is this data real?":
 | Shade                   | Modeled                | Google Solar API, LIDAR analysis           |
 | Utility bill / usage    | Derived from real rates| Utility APIs / customer-provided bills     |
 | Production / savings / payback | **Real (NREL PVWatts v8, live)** | Same + installer pricing data |
-| CO₂ / environmental offsets  | Gemini (live)     | EPA AVERT emission factors                 |
+| CO₂ / en

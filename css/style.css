@@ -968,3 +968,10 @@ html, body {
   letter-spacing: 0.05em;
   vertical-align: 1px;
 }
+
+.legend-source {
+  margin: 6px 0 0;
+  font-size: 10px;
+  color: var(--bloom-muted);
+  opacity: 0.75;
+}

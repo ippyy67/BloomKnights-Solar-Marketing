@@ -76,6 +76,18 @@ Shorter version if asked point-blank "is this data real?":
 > coordinates. The remaining fields are modeled for the demo, and each one
 > has a named production API it would come from."
 
+## Citable stats (memorize two or three)
+
+- ~7% of U.S. homes have rooftop solar (~4.7M households) — SEIA
+- Hawaii: 45% of single-family homes; California: ~20% — our map's high end
+- **Florida is #3 in the nation for installed solar capacity** (SEIA 2026)
+- Orlando: #32 of 70 U.S. cities for solar (Shining Cities), city goal of
+  100% renewable electricity by 2050
+- LBNL: solar adopters' median income is $115k vs $75k nationally, and
+  non-White-majority tracts adopt less at every income level — **Pine Hills
+  being red is the documented solar equity gap, and closing it is the
+  product's purpose.** Full citations: DATA_SOURCES.md.
+
 ## Production data sources (name-drop list)
 
 | On-screen number        | Demo source            | Production source                          |

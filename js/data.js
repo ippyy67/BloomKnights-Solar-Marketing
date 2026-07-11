@@ -40,6 +40,10 @@ function clamp(n, lo, hi) {
 }
 
 // ---- Level 1: coverage by state --------------------------------------------
+// Illustrative coverage index, calibrated to real relative rankings:
+// HI highest (45% of single-family homes have solar, Hawaiian Electric 2025),
+// CA ~20%, sunbelt NV/AZ high, FL #3 in installed capacity (SEIA 2026),
+// WV lowest. Real benchmarks + citations: see DATA_SOURCES.md.
 const STATE_COVERAGE = {
   AL: 0.15, AK: 0.09, AZ: 0.72, AR: 0.17, CA: 0.79, CO: 0.55, CT: 0.45,
   DE: 0.36, DC: 0.50, FL: 0.42, GA: 0.33, HI: 0.84, ID: 0.31, IL: 0.30,
@@ -52,6 +56,9 @@ const STATE_COVERAGE = {
 };
 
 // ---- Level 2: coverage by city (FL hand-tuned = demo path) ------------------
+// Orlando ranked #32/70 US cities for solar capacity (Environment America,
+// Shining Cities) with a 100%-renewable-by-2050 city goal; Pine Hills' low
+// index reflects LBNL's documented solar equity gap. See DATA_SOURCES.md.
 const FL_CITY_COVERAGE = {
   'Orlando': 0.40, 'Jacksonville': 0.27, 'Miami': 0.52, 'Tampa': 0.38,
   'St. Petersburg': 0.55, 'Hialeah': 0.22, 'Tallahassee': 0.44,

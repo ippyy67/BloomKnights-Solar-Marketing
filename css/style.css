@@ -2,7 +2,7 @@
   --bloom-orange: #ff8a3d;
   --bloom-red: #e6402e;
   --bloom-dark: #1c2331;
-  --bloom-panel: rgba(20, 24, 34, 0.92);
+  --bloom-panel: rgba(20, 24, 34, 0.84);
   --bloom-text: #eef1f6;
   --bloom-muted: #9aa4b8;
 }
@@ -143,6 +143,8 @@ html, body {
 }
 
 #info-panel {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   position: absolute;
   top: 76px;
   right: 20px;

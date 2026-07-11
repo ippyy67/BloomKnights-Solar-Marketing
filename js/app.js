@@ -357,10 +357,6 @@ function houseInfoHtml(house, hoodName) {
     '<div class="stat"><span>Est. savings if converted</span><span>$' + fmt(house.estAnnualSavings) + '/yr</span></div>';
 }
 
-<<<<<<< HEAD
-  hotspot._leads.forEach((lead) => {
-    createHomeMarker(lead);
-=======
 function addHouseRect(house, hoodName, halfLat, halfLng, emphasized) {
   const rect = L.rectangle(
     [[house.lat - halfLat, house.lng - halfLng], [house.lat + halfLat, house.lng + halfLng]],
@@ -447,7 +443,6 @@ function goHood(hood, opts) {
   transition({
     fly: fly ? () => map.flyToBounds(targetBounds.pad(0.05), { duration: 0.8 }) : null,
     populate,
->>>>>>> origin/Dev
   });
 
   setLegend(hood.name + ' — Lead Map', 'Loading real parcel data…');

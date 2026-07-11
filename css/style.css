@@ -818,9 +818,9 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 24, 34, 0.35);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: rgba(20, 24, 34, 0.82);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.22s ease;

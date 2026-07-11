@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BloomKnights | Solar Coverage Map</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header id="app-header">
+    <div class="brand">
+      <span class="brand-mark">☀</span>
+      <span class="brand-name">BloomKnights</span>
+      <span class="brand-sub">Solar Coverage Map</span>
+    </div>
+    <nav id="breadcrumb">
+      <button class="crumb active" data-level="global">Global</button>
+    </nav>
+  </header>
+
+  <main id="map"></main>
+
+  <aside id="legend">
+    <h3>Uncovered Opportunity</h3>
+    <div class="legend-bar"></div>
+    <div class="legend-labels">
+      <span>Low</span>
+      <span>High</span>
+    </div>
+    <p id="legend-hint">Click a hotspot to drill in. Darker red = more homes without solar.</p>
+  </aside>
+
+  <div id="info-panel" class="hidden">
+    <button id="info-close">&times;</button>
+    <div id="info-content"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

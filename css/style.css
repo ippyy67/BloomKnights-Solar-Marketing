@@ -123,7 +123,8 @@ html, body {
 .legend-bar {
   height: 10px;
   border-radius: 6px;
-  background: linear-gradient(to right, #2b6cb0, #38b2ac, #ecc94b, #ed8936, #e53e3e);
+  /* One site-wide color rule: red = no coverage -> blue = full coverage */
+  background: linear-gradient(to right, #e53e3e, #ed8936, #ecc94b, #38b2ac, #2b6cb0);
 }
 
 .legend-labels {
@@ -186,16 +187,50 @@ html, body {
   font-weight: 600;
 }
 
-.metro-marker {
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+/* Street name labels in the parcel (lead map) view */
+.street-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #8a94ab;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+.street-label::before { display: none; }
+
+/* Neighborhood name labels shown at the city (house) level */
+.hood-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #eef1f6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
+}
+.hood-label::before { display: none; }
+
+#info-content .hood-tag {
+  margin: 0 0 8px 0;
+  font-size: 11.5px;
+  color: var(--bloom-muted);
 }
 
-.hotspot-marker {
-  border-radius: 50%;
-  border: 2px solid #fff;
+/* Dark-theme Leaflet tooltips to match the panel */
+.leaflet-tooltip:not(.hood-label) {
+  background: var(--bloom-panel);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--bloom-text);
+  border-radius: 6px;
 }
+.leaflet-tooltip-top:not(.hood-label)::before { border-top-color: var(--bloom-panel); }
+.leaflet-tooltip-bottom:not(.hood-label)::before { border-bottom-color: var(--bloom-panel); }
+.leaflet-tooltip b { color: var(--bloom-orange); }
 
 .leaflet-popup-content-wrapper {
   background: var(--bloom-panel);

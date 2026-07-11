@@ -234,7 +234,8 @@ function showListingDetail(listing, hood) {
       </div>
       <h5 class="detail-section-title">What's special</h5>
       <div class="chips">${chips}</div>
-      <div class="ai-summary" id="ai-summary" data-address="${listing.address}">${summaryHtml}</div>
+      ${(listing.aiEnabled || listing.aiSummary || cachedAnalysis)
+        ? `<div class="ai-summary" id="ai-summary" data-address="${listing.address}">${summaryHtml}</div>` : ''}
       <h5 class="detail-section-title">Solar snapshot</h5>
       <div class="snapshot-grid">${snapshotRows}</div>
     </div>
@@ -249,7 +250,7 @@ function showListingDetail(listing, hood) {
   // Cached result already rendered above; with a stored key, generate
   // automatically; otherwise offer a one-click generate button.
   window.currentListing = listing;
-  if (!cachedAnalysis && !listing.aiSummary && typeof generateListingAnalysis === 'function') {
+  if (listing.aiEnabled && !cachedAnalysis && !listing.aiSummary && typeof generateListingAnalysis === 'function') {
     if (hasGeminiKey()) {
       generateListingAnalysis(listing);
     } else {

@@ -116,7 +116,8 @@ const NEIGHBORHOOD_LISTINGS = {
       systemSize: '7.2 kW', installEstimate: '$18,400', paybackYears: '7.1 yrs',
       incentives: '30% federal ITC eligible', utility: 'Duke Energy',
       highlights: ['South-facing roof', 'No shade', 'High utility bill', 'Roof under 10 yrs old'],
-      aiSummary: null, // filled by the Gemini integration at demo time
+      aiEnabled: true, // the one card that calls Gemini in the demo
+      aiSummary: null,
     },
     { address: '1820 Willow Bend St', coverage: '22%', solarInstalled: 'No', roofSqft: '1,940', estSavings: '$1,540/yr', badge: 'High match', note: 'Great roof profile for solar conversion', score: 91, utilityBill: '$201/mo', shade: 'Low' },
     { address: '1655 Bloom Ave', coverage: '31%', solarInstalled: 'Yes', roofSqft: '1,480', estSavings: '$980/yr', badge: 'Warm lead', note: 'Ideal for a targeted outreach push', score: 74, utilityBill: '$164/mo', shade: 'Medium' },

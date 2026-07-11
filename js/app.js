@@ -132,7 +132,10 @@ function showInfoPanel(html, options) {
   panel.classList.remove('hidden');
 }
 
+let currentHood = null;
+
 function showNeighborhoodListings(hood) {
+  currentHood = hood;
   const listings = NEIGHBORHOOD_LISTINGS[hood.name] || [
     {
       address: '123 ' + hood.name + ' Ave',
@@ -273,10 +276,25 @@ function setListingSummary(text) {
 }
 
 function hideInfoPanel() {
-  document.getElementById('info-panel').classList.add('hidden');
+  const panel = document.getElementById('info-panel');
+  panel.classList.add('hidden');
+  panel.classList.remove('detail-view', 'docked');
 }
 
-document.getElementById('info-close').addEventListener('click', hideInfoPanel);
+// X (or Escape) on the detail modal steps back to the listings rail first;
+// on the rail (or anywhere else) it hides the panel entirely.
+function closeInfoPanel() {
+  const panel = document.getElementById('info-panel');
+  if (!panel.classList.contains('hidden') && panel.classList.contains('detail-view')
+      && currentLevel === 'hood' && currentHood) {
+    showNeighborhoodListings(currentHood);
+  } else {
+    hideInfoPanel();
+  }
+}
+
+document.getElementById('info-close').addEventListener('click', closeInfoPanel);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeInfoPanel(); });
 
 function renderBreadcrumb(path) {
   const nav = document.getElementById('breadcrumb');

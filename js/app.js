@@ -328,7 +328,7 @@ function goUSA(opts) {
   selectedAbbr = null;
 
   transition({
-    fly: fly ? () => map.flyTo([38.8, -96.9], 4, { duration: 0.7 }) : null,
+    fly: fly ? () => map.flyTo([38.8, -96.9], 4, { duration: 0.5 }) : null,
   });
 
   setLegend('Renewable Coverage', 'Share of households on renewable energy, by state. Hover any state, or click to drill in.');
@@ -385,9 +385,9 @@ function goState(abbr, opts) {
     ? L.latLngBounds(stateCities.map((c) => [c.lat, c.lng])).pad(0.10)
     : (stateFeatureBounds(abbr) ? stateFeatureBounds(abbr).pad(0.08) : null);
   transition({
-    fly: fly && bounds ? () => map.flyToBounds(bounds, { duration: 0.7 }) : null,
-    populate,
+    fly: fly && bounds ? () => map.flyToBounds(bounds, { duration: 0.5 }) : null,
   });
+  populate(); // markers appear instantly and ride along during the flight
 
   setLegend(stateName(abbr) + ' — City Coverage', 'Bigger, redder circles = more homes without renewables. Hover a city, or click to drill in.');
   renderBreadcrumb([{ label: 'USA', go: () => goUSA() }, { label: stateName(abbr) }]);
@@ -424,9 +424,9 @@ function goCity(city, opts) {
   const core = ORLANDO_HOODS.filter((h) => Math.hypot(h.lat - clat, h.lng - clng) <= Math.max(medDist * 2.2, 0.02));
   const b = L.latLngBounds((core.length >= 3 ? core : ORLANDO_HOODS).map((h) => [h.lat, h.lng]));
   transition({
-    fly: fly ? () => map.flyToBounds(b.pad(0.06), { duration: 0.7 }) : null,
-    populate,
+    fly: fly ? () => map.flyToBounds(b.pad(0.06), { duration: 0.5 }) : null,
   });
+  populate(); // markers appear instantly and ride along during the flight
 
   setLegend(city.name + ' — Neighborhood Coverage', 'Hover a bubble for neighborhood stats, or click one to open nearby home listings.');
   renderBreadcrumb([
@@ -552,6 +552,17 @@ function renderPlatHood(hood) {
   return plat.houses;
 }
 
+// Warm the parcel data in the background at boot: the Overpass fetch AND the
+// house build happen before Pine Hills is ever clicked, so the hood view
+// renders the moment the camera lands. Falls back to the drawn plat on error.
+let hoodDataPromise = null;
+function warmHoodData() {
+  if (!hoodDataPromise) {
+    hoodDataPromise = fetchRealHood().then((raw) => buildRealHood(raw)).catch(() => null);
+  }
+  return hoodDataPromise;
+}
+
 function goHood(hood, opts) {
   const fly = !opts || opts.fly !== false;
   currentLevel = 'hood';
@@ -561,23 +572,16 @@ function goHood(hood, opts) {
 
   const populate = () => {
     const mySeq = viewSeq;
-    fetchRealHood()
-      .then((raw) => {
-        if (mySeq !== viewSeq || currentLevel !== 'hood') return;
-        const houses = renderRealHood(hood, buildRealHood(raw));
-        placeHeroDots(houses, hood);
-        showNeighborhoodListings(hood);
-      })
-      .catch(() => {
-        if (mySeq !== viewSeq || currentLevel !== 'hood') return;
-        const houses = renderPlatHood(hood);
-        placeHeroDots(houses, hood);
-        showNeighborhoodListings(hood);
-      });
+    warmHoodData().then((data) => {
+      if (mySeq !== viewSeq || currentLevel !== 'hood') return;
+      const houses = data ? renderRealHood(hood, data) : renderPlatHood(hood);
+      placeHeroDots(houses, hood);
+      showNeighborhoodListings(hood);
+    });
   };
 
   transition({
-    fly: fly ? () => map.flyToBounds(targetBounds.pad(0.05), { duration: 0.8 }) : null,
+    fly: fly ? () => map.flyToBounds(targetBounds.pad(0.05), { duration: 0.6 }) : null,
     populate,
   });
 
@@ -615,3 +619,4 @@ if (splashEl) {
 // ---- Boot -----------------------------------------------------------------------------------------
 buildStateLayer();
 goUSA({ fly: false });
+warmHoodData();

@@ -92,7 +92,7 @@ Shorter version if asked point-blank "is this data real?":
 
 | On-screen number        | Demo source            | Production source                          |
 | ----------------------- | ---------------------- | ------------------------------------------ |
-| State/city coverage %   | Modeled                | EIA Form 861, NREL Solar Installation data |
+| State/city/hood coverage index | Normalized from EIA-861 / Project Sunroof / DeepSolar orderings | Same, computed directly |
 | Building footprints     | **Real (OSM, live)**   | Same, or Microsoft Building Footprints     |
 | Roof size / age / type  | Modeled                | County property appraiser (Orange County)  |
 | Peak sun hours          | **Real (NREL, live)**  | Same (NREL Solar Resource API)             |

@@ -104,19 +104,25 @@ const HERO_HOOD_NAME = 'Pine Hills';
 
 // ---- Level 4a: REAL Pine Hills buildings from OpenStreetMap ------------------
 // Bbox = the residential pocket just east of Pine Hills Rd / north of Silver
-// Star Rd. ~0.7 x 1.0 km -> a few hundred buildings, small enough to fetch
-// fast and cache.
-const REAL_HOOD_BBOX = { s: 28.5742, w: -81.4593, n: 28.5808, e: -81.4487 };
+// Star Rd. Widened for the demo (~1.1 x 1.5 km) so the plotting extends a
+// bit further across the focus neighborhood; still small enough to fetch fast.
+// Tight camera frame — zoomed in onto ~one street cluster so only a small
+// number of dots render (fast load; only two homes are clicked in the demo).
+const REAL_HOOD_BBOX = { s: 28.5792, w: -81.4588, n: 28.5812, e: -81.4560 };
+// Fetch a bit wider than the camera frames so every building visible in the
+// viewport (which is wider than the framed box) still gets a dot. Culled by
+// distance-to-center in buildRealHood so the marker count stays sane.
+const REAL_FETCH_BBOX = { s: 28.5780, w: -81.4606, n: 28.5824, e: -81.4542 };
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ];
-const HOOD_CACHE_KEY = 'bloomknights-pinehills-osm-v1';
+const HOOD_CACHE_KEY = 'bloomknights-pinehills-osm-v7';
 
 function overpassQuery() {
-  const b = REAL_HOOD_BBOX;
+  const b = REAL_FETCH_BBOX;
   const bbox = b.s + ',' + b.w + ',' + b.n + ',' + b.e;
-  return '[out:json][timeout:20];' +
+  return '[out:json][timeout:30];' +
     'way["building"](' + bbox + ');out center;' +
     'way["highway"]["name"](' + bbox + ');out geom;';
 }
@@ -152,7 +158,7 @@ function fetchRealHood() {
   const tryEndpoint = function (i) {
     if (i >= OVERPASS_ENDPOINTS.length) return Promise.reject(new Error('overpass unavailable'));
     const ctrl = new AbortController();
-    const timer = setTimeout(function () { ctrl.abort(); }, 9000);
+    const timer = setTimeout(function () { ctrl.abort(); }, 25000);
     return fetch(OVERPASS_ENDPOINTS[i] + '?data=' + encodeURIComponent(overpassQuery()), { signal: ctrl.signal })
       .then(function (r) {
         if (!r.ok) throw new Error('http ' + r.status);
@@ -233,8 +239,24 @@ function buildRealHood(raw) {
     if (residential && n > heroCount) { heroName = st.name; heroCount = n; }
   });
 
+  // Zoomed in tight, so keep a dot on every building in (and just around) the
+  // viewport — no house should be missing a point. The hard cap stays only as a
+  // safety valve in case the fetch area is ever widened again.
+  const v = REAL_HOOD_BBOX;
+  const clat = (v.s + v.n) / 2, clng = (v.w + v.e) / 2;
+  const hLat = (v.n - v.s) / 2, hLng = (v.e - v.w) / 2;
+  const normDist = function (h) {
+    const dy = (h.lat - clat) / hLat, dx = (h.lng - clng) / hLng;
+    return Math.sqrt(dy * dy + dx * dx);
+  };
+  let kept = houses;
+  const CAP = 2400;
+  if (kept.length > CAP) {
+    kept = kept.slice().sort(function (a, b) { return normDist(a) - normDist(b); }).slice(0, CAP);
+  }
+
   return {
-    houses: houses,
+    houses: kept,
     heroName: heroName,
     heroPaths: heroName ? raw.streets.filter(function (s) { return s.name === heroName; }).map(function (s) { return s.path; }) : [],
     real: true,
@@ -242,13 +264,13 @@ function buildRealHood(raw) {
 }
 
 // ---- Level 4b: synthetic plat FALLBACK (only if OSM fetch fails) -------------
-const PLAT_STREETS = ['Bloom Ave', 'Silver Pine Dr', 'Willow Bend St', 'Sun Meadow Ln', 'Knight Grove Rd'];
-const PLAT_CROSS = ['Palm Ct', 'Cedar Xing', 'Solar Way'];
+const PLAT_STREETS = ['Bloom Ave', 'Silver Pine Dr', 'Willow Bend St', 'Sun Meadow Ln', 'Knight Grove Rd', 'Harvest Ln'];
+const PLAT_CROSS = ['Palm Ct', 'Cedar Xing', 'Solar Way', 'Maple Ct'];
 
 function buildHeroPlat() {
   const rand = seededRandom(hashString('pine-hills-plat'));
-  const lat0 = 28.5737;
-  const lng0 = -81.4601, lng1 = -81.4479;
+  const lat0 = 28.5734;
+  const lng0 = -81.4607, lng1 = -81.4473;
   const streetGap = 0.0016;
   const houseStep = 0.00082;
   const setback = 0.00034;
@@ -257,13 +279,13 @@ function buildHeroPlat() {
   const streets = [];
   const houses = [];
 
-  const crossXs = [lng0 + 0.0031, lng0 + 0.0064, lng0 + 0.0097];
+  const crossXs = [lng0 + 0.0031, lng0 + 0.0064, lng0 + 0.0097, lng0 + 0.0121];
   const latTop = lat0 + (PLAT_STREETS.length - 1) * streetGap;
   const cross = crossXs.map(function (x, j) {
     return { name: PLAT_CROSS[j], path: [[lat0 - 0.0006, x], [latTop + 0.0006, x]], cross: true };
   });
 
-  const pocket = { lat: 28.5794, lng: -81.4489 };
+  const pocket = { lat: latTop - 0.0009, lng: lng1 - 0.0014 };
   const sigma = 0.0018;
 
   PLAT_STREETS.forEach(function (name, i) {

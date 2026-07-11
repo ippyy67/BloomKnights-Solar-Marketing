@@ -123,7 +123,7 @@ function stateStyle(feature) {
 //   usa  -> each state's own coverage
 //   state-> none (bubbles carry the info)
 //   city -> hovering between bubbles shows Orlando's coverage
-//   hood -> hovering between houses shows Pine Hills' coverage
+//   hood -> none (only the house dots are interactive)
 function setStateTooltips() {
   stateLayer.eachLayer((l) => {
     l.unbindTooltip();
@@ -135,9 +135,9 @@ function setStateTooltips() {
     } else if (abbr === selectedAbbr) {
       if (currentLevel === 'city') {
         l.bindTooltip(ORLANDO.name + ' — ' + pct(ORLANDO.coverage) + ' renewable coverage', { sticky: true, direction: 'top' });
-      } else if (currentLevel === 'hood') {
-        l.bindTooltip(HERO_HOOD.name + ' — ' + pct(HERO_HOOD.coverage) + ' neighborhood coverage', { sticky: true, direction: 'top' });
       }
+      // hood level: no polygon tooltip — only the house dots are interactive,
+      // so hovering the gaps between homes stays clean.
     }
   });
 }
@@ -331,39 +331,28 @@ function houseInfoHtml(house, hoodName) {
 }
 
 function addHouseRect(house, hoodName, halfLat, halfLng, emphasized) {
-  const rect = L.rectangle(
-    [[house.lat - halfLat, house.lng - halfLng], [house.lat + halfLat, house.lng + halfLng]],
-    {
-      color: emphasized ? '#ffffff' : '#0e1420',
-      weight: emphasized ? 1.5 : 1,
-      fillColor: colorForCoverage(house.coverage),
-      fillOpacity: 0.95,
-    }
-  ).addTo(houseLayer);
-  rect.bindTooltip(house.address + ' — ' + pct(house.coverage) + ' renewable', { direction: 'top' });
-  rect.on('click', () => showInfoPanel(houseInfoHtml(house, hoodName)));
+  // Small dot centered on the house so the underlying building stays visible.
+  const dot = L.circleMarker([house.lat, house.lng], {
+    radius: emphasized ? 5 : 4,
+    color: emphasized ? '#ffffff' : '#0e1420',
+    weight: emphasized ? 1.5 : 1,
+    fillColor: colorForCoverage(house.coverage),
+    fillOpacity: 0.95,
+  }).addTo(houseLayer);
+  dot.bindTooltip(house.address + ' — ' + pct(house.coverage) + ' renewable', { direction: 'top' });
+  dot.on('click', () => showInfoPanel(houseInfoHtml(house, hoodName)));
 }
 
 // Real-OSM renderer: every building in the viewport is a colored, hoverable,
-// clickable home; the hero street gets an orange dashed "canvass route" line
-// and white-outlined houses.
+// clickable home. Every dot is styled the same for a clean, uniform look.
 function renderRealHood(hood, data) {
   tiles.setOpacity(1); // real streets ARE the map now
-  data.heroPaths.forEach((path) => {
-    L.polyline(path, {
-      color: '#ff8a3d',
-      weight: 4,
-      opacity: 0.85,
-      dashArray: '8 8',
-      lineCap: 'round',
-    }).addTo(streetLayer).bindTooltip('Canvass route — ' + data.heroName, { sticky: true });
-  });
   data.houses.forEach((house) => {
-    addHouseRect(house, hood.name, REAL_HALF_LAT, REAL_HALF_LNG, data.heroName && house.street === data.heroName);
+    addHouseRect(house, hood.name, REAL_HALF_LAT, REAL_HALF_LNG, false);
   });
   setLegend(
     hood.name + ' — Lead Map',
-    'Every building is real (OpenStreetMap). Blue = on renewables, red = no coverage. Orange dashes = today’s canvass route' + (data.heroName ? ' (' + data.heroName + ')' : '') + '. Click any home.'
+    'Every building is real (OpenStreetMap). Blue = on renewables, red = no coverage. Click any home.'
   );
 }
 
@@ -371,6 +360,9 @@ function renderRealHood(hood, data) {
 function renderPlatHood(hood) {
   tiles.setOpacity(0.25);
   const plat = getHeroPlat();
+  // The modeled plat has its own extent; frame the camera to it so the grid
+  // fills the viewport instead of floating inside the (wider) fetch bbox.
+  map.fitBounds(L.latLngBounds(plat.bounds).pad(0.04), { animate: true, duration: 0.5 });
   plat.streets.forEach((st) => {
     L.polyline(st.path, {
       color: '#3d4761',
@@ -389,7 +381,7 @@ function renderPlatHood(hood) {
   });
   setLegend(
     hood.name + ' — Lead Map',
-    'Each square is a home: blue = on renewables, red = no coverage (lead). Click a home for details. (Offline mode: modeled parcels)'
+    'Each dot is a home: blue = on renewables, red = no coverage (lead). Click a home for details. (Offline mode: modeled parcels)'
   );
 }
 

@@ -2,54 +2,22 @@
  * data.js
  * Mock data layer for the BloomKnights solar coverage demo.
  *
- * In a real product, GLOBAL_METROS / regional / city numbers would come from
- * a solar-permit or utility-interconnection dataset (e.g. county assessor +
- * utility net-metering records) joined against rooftop/parcel data. For this
- * hackathon build we synthesize plausible-looking data so the drill-down UX
- * (global -> regional -> city) can be demoed end to end.
+ * METRIC
+ * ------
+ * "coverage" = share of households in an area using solar / renewable energy
+ * (0 = none, 1 = fully covered). One color rule everywhere on the site:
+ * red = no coverage ... blue = high coverage (see colorForCoverage in app.js).
  *
- * "opportunity" = estimated share of homes in an area WITHOUT solar
- * (0 = fully covered, 1 = almost no solar penetration). Higher is exactly
- * what a solar sales team wants to find.
- *
- * RENDERING MODEL
- * ----------------
- * Instead of feeding Leaflet.heat a scatter of random jittered points (which
- * reads as a cluster of blobs), we build a dense, evenly-spaced GRID over
- * the relevant bounding box and assign every grid cell an intensity value
- * via Gaussian falloff from the nearby "source" points (metros / hotspots /
- * leads). That grid is what gets fed to the heat layer, so the result is a
- * continuous, area-based gradient -- much closer to a real temperature map
- * -- rather than a handful of visually separate dots. The clickable dot
- * markers stay on top as the interactive layer.
- *
- * PRECOMPUTATION
- * ----------------
- * All regional and city fields are deterministic (seeded by id), so they're
- * computed once up front (see precomputeAllData() at the bottom) instead of
- * on every click. Drilling down is then just a cache lookup -- no per-click
- * generation cost, which is what was making the regional transition feel
- * slow.
+ * GEOGRAPHY IS REAL, NUMBERS ARE FAKE
+ * -----------------------------------
+ * State boundaries + city coordinates come from js/geo-data.js (US Census /
+ * GeoNames data), so everything lands exactly where it should on the map.
+ * Coverage percentages and house-level details are synthesized (deterministic,
+ * seeded) for the hackathon demo. Florida / Orlando values are hand-tuned
+ * since that's the demo path; other regions ride on seeded generation.
  */
 
-// ---- Level 1: Global (major US metros) ----------------------------------
-const GLOBAL_METROS = [
-  { id: 'nyc', name: 'New York, NY',    lat: 40.7128, lng: -74.0060, opportunity: 0.62 },
-  { id: 'la',  name: 'Los Angeles, CA', lat: 34.0522, lng: -118.2437, opportunity: 0.35 },
-  { id: 'chi', name: 'Chicago, IL',     lat: 41.8781, lng: -87.6298, opportunity: 0.71 },
-  { id: 'hou', name: 'Houston, TX',     lat: 29.7604, lng: -95.3698, opportunity: 0.58 },
-  { id: 'phx', name: 'Phoenix, AZ',     lat: 33.4484, lng: -112.0740, opportunity: 0.28 },
-  { id: 'orl', name: 'Orlando, FL',     lat: 28.5383, lng: -81.3792, opportunity: 0.74 },
-  { id: 'mia', name: 'Miami, FL',       lat: 25.7617, lng: -80.1918, opportunity: 0.66 },
-  { id: 'den', name: 'Denver, CO',      lat: 39.7392, lng: -104.9903, opportunity: 0.44 },
-  { id: 'sea', name: 'Seattle, WA',     lat: 47.6062, lng: -122.3321, opportunity: 0.81 },
-  { id: 'atl', name: 'Atlanta, GA',     lat: 33.7490, lng: -84.3880, opportunity: 0.69 },
-  { id: 'dal', name: 'Dallas, TX',      lat: 32.7767, lng: -96.7970, opportunity: 0.52 },
-  { id: 'bos', name: 'Boston, MA',      lat: 42.3601, lng: -71.0589, opportunity: 0.57 },
-];
-
-// Simple deterministic PRNG so a given metro/hotspot always regenerates the
-// same-looking data (nicer for demoing than pure Math.random jitter).
+// ---- Deterministic PRNG (same input -> same demo data every load) ---------
 function seededRandom(seed) {
   let s = seed % 2147483647;
   if (s <= 0) s += 2147483646;
@@ -68,155 +36,169 @@ function hashString(str) {
   return Math.abs(h) || 1;
 }
 
-function clamp01(n) {
-  return Math.max(0.03, Math.min(1, n));
+function clamp(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
 }
 
-// ---- Core field builder ---------------------------------------------------
-// sources: [{lat, lng, opportunity}]
-// bounds: {latMin, latMax, lngMin, lngMax}
-// Returns an array of [lat, lng, intensity] covering the whole bounding box.
-function buildField(sources, bounds, gridSize, sigmaDeg, baseline) {
-  const points = [];
-  const latStep = (bounds.latMax - bounds.latMin) / (gridSize - 1);
-  const lngStep = (bounds.lngMax - bounds.lngMin) / (gridSize - 1);
-  const twoSigmaSq = 2 * sigmaDeg * sigmaDeg;
+// ---- Level 1: coverage by state (choropleth values) ------------------------
+// Hand-authored so the national map reads like an electoral map with a clear
+// story: sunbelt + west lead, coal country lags. FL sits mid-low = opportunity.
+const STATE_COVERAGE = {
+  AL: 0.15, AK: 0.09, AZ: 0.72, AR: 0.17, CA: 0.79, CO: 0.55, CT: 0.45,
+  DE: 0.36, DC: 0.50, FL: 0.42, GA: 0.33, HI: 0.84, ID: 0.31, IL: 0.30,
+  IN: 0.18, IA: 0.41, KS: 0.36, KY: 0.10, LA: 0.13, ME: 0.38, MD: 0.42,
+  MA: 0.58, MI: 0.21, MN: 0.34, MS: 0.11, MO: 0.22, MT: 0.19, NE: 0.30,
+  NV: 0.74, NH: 0.35, NJ: 0.56, NM: 0.61, NY: 0.44, NC: 0.47, ND: 0.12,
+  OH: 0.22, OK: 0.28, OR: 0.41, PA: 0.24, RI: 0.49, SC: 0.38, SD: 0.27,
+  TN: 0.20, TX: 0.38, UT: 0.58, VT: 0.52, VA: 0.30, WA: 0.33, WV: 0.08,
+  WI: 0.23, WY: 0.14,
+};
 
-  for (let i = 0; i < gridSize; i++) {
-    const lat = bounds.latMin + i * latStep;
-    for (let j = 0; j < gridSize; j++) {
-      const lng = bounds.lngMin + j * lngStep;
-      let intensity = baseline;
-      for (let k = 0; k < sources.length; k++) {
-        const s = sources[k];
-        const dLat = lat - s.lat;
-        const dLng = lng - s.lng;
-        const distSq = dLat * dLat + dLng * dLng;
-        const falloff = Math.exp(-distSq / twoSigmaSq);
-        intensity += s.opportunity * falloff * 0.88;
-      }
-      points.push([lat, lng, clamp01(intensity)]);
-    }
+// ---- Level 2: coverage by city ---------------------------------------------
+// Florida is the demo path -> hand-tuned per city. Everywhere else: state
+// coverage +/- seeded jitter.
+const FL_CITY_COVERAGE = {
+  'Orlando': 0.40, 'Jacksonville': 0.27, 'Miami': 0.52, 'Tampa': 0.38,
+  'St. Petersburg': 0.55, 'Hialeah': 0.22, 'Tallahassee': 0.44,
+  'Fort Lauderdale': 0.48, 'Cape Coral': 0.61, 'Pembroke Pines': 0.33,
+  'Port Saint Lucie': 0.58, 'Hollywood': 0.36, 'Miramar': 0.30,
+  'Gainesville': 0.50,
+};
+
+function cityCoverage(stateAbbr, city) {
+  if (stateAbbr === 'FL' && FL_CITY_COVERAGE[city.name] !== undefined) {
+    return FL_CITY_COVERAGE[city.name];
   }
-  return points;
+  const rand = seededRandom(hashString(stateAbbr + '-' + city.name));
+  return clamp(STATE_COVERAGE[stateAbbr] + (rand() - 0.5) * 0.36, 0.04, 0.92);
 }
 
-// ---- Level 1 field: continental US ----------------------------------------
-const GLOBAL_BOUNDS = { latMin: 23, latMax: 49.5, lngMin: -125, lngMax: -66 };
-const GLOBAL_GRID_SIZE = 44;
-const GLOBAL_SIGMA_DEG = 2.6;
-
-function buildGlobalField() {
-  return buildField(GLOBAL_METROS, GLOBAL_BOUNDS, GLOBAL_GRID_SIZE, GLOBAL_SIGMA_DEG, 0.03);
+// Rough household count from population (avg ~2.6 people / household).
+function cityHouseholds(city) {
+  return Math.round(city.pop * 0.38);
 }
 
-// ---- Level 2: Regional (generated around a metro) --------------------------
-// Produces cluster "hotspot" centers (clickable dots) + a smooth field built
-// from those same clusters.
-function generateRegionalClusters(metro) {
-  const rand = seededRandom(hashString(metro.id + '-region'));
-  const clusterCount = 4 + Math.floor(rand() * 2); // 4-5 clusters
-  const clusters = [];
+// Precomputed once at boot: US_CITIES + coverage + household stats.
+// CITY_STATS[abbr] = [{name, lat, lng, pop, coverage, households, uncovered}]
+const CITY_STATS = {};
 
-  for (let i = 0; i < clusterCount; i++) {
-    const angle = rand() * Math.PI * 2;
-    const dist = 0.4 + rand() * 1.2; // degrees, roughly county-scale
-    const intensity = clamp01(metro.opportunity + (rand() - 0.35) * 0.4);
-    clusters.push({
-      id: `${metro.id}-c${i}`,
-      name: `${metro.name.split(',')[0]} Sector ${i + 1}`,
-      lat: metro.lat + Math.cos(angle) * dist,
-      lng: metro.lng + Math.sin(angle) * dist,
-      opportunity: intensity,
+function precomputeAllData() {
+  Object.keys(US_CITIES).forEach((abbr) => {
+    CITY_STATS[abbr] = US_CITIES[abbr].map((c) => {
+      const coverage = cityCoverage(abbr, c);
+      const households = cityHouseholds(c);
+      return {
+        ...c,
+        id: abbr.toLowerCase() + '-' + c.name.toLowerCase().replace(/[^a-z]+/g, '-'),
+        coverage,
+        households,
+        uncovered: Math.round(households * (1 - coverage)),
+      };
     });
-  }
-  return clusters;
+  });
 }
 
-const REGIONAL_HALF_SPAN_DEG = 2.2;
-const REGIONAL_GRID_SIZE = 30;
-const REGIONAL_SIGMA_DEG = 0.6;
+// ---- Level 3: houses --------------------------------------------------------
+// Houses are generated per city as clustered NEIGHBORHOODS (coverage is
+// spatially correlated -- whole streets adopt solar together), laid out on a
+// small suburban street grid around the real city center. Lazy + cached so
+// nothing is generated until a city is opened.
 
-function buildRegionalField(metro, clusters) {
-  const bounds = {
-    latMin: metro.lat - REGIONAL_HALF_SPAN_DEG,
-    latMax: metro.lat + REGIONAL_HALF_SPAN_DEG,
-    lngMin: metro.lng - REGIONAL_HALF_SPAN_DEG,
-    lngMax: metro.lng + REGIONAL_HALF_SPAN_DEG,
-  };
-  return buildField(clusters, bounds, REGIONAL_GRID_SIZE, REGIONAL_SIGMA_DEG, 0.04);
-}
+// Curated Orlando neighborhoods (real districts, approx. real locations) so
+// the hero demo drill-down looks intentional, not random.
+const ORLANDO_NEIGHBORHOODS = [
+  { name: 'Winter Park',   lat: 28.596, lng: -81.351, base: 0.72 },
+  { name: 'Baldwin Park',  lat: 28.567, lng: -81.327, base: 0.62 },
+  { name: 'College Park',  lat: 28.570, lng: -81.390, base: 0.48 },
+  { name: 'Downtown',      lat: 28.543, lng: -81.373, base: 0.38 },
+  { name: 'Milk District', lat: 28.539, lng: -81.350, base: 0.44 },
+  { name: 'Conway',        lat: 28.499, lng: -81.351, base: 0.30 },
+  { name: 'MetroWest',     lat: 28.516, lng: -81.468, base: 0.34 },
+  { name: 'Pine Hills',    lat: 28.578, lng: -81.454, base: 0.14 },
+  { name: 'Lake Nona',     lat: 28.402, lng: -81.253, base: 0.58 },
+];
 
-// ---- Level 3: City (generated around a regional hotspot) -------------------
-// Produces mock "leads" (clickable dots with sales-relevant stats) + a
-// smooth field built from those leads.
+const GENERIC_HOOD_NAMES = [
+  'Northside', 'Riverview', 'Oak Grove', 'Sunset Hills', 'Eastwood',
+  'Lakeside', 'Old Town', 'Fairview', 'Meadowbrook', 'Highland Park',
+];
+
 const STREET_NAMES = [
   'Maple', 'Sunset', 'Palm', 'Cedar', 'Willow', 'Magnolia', 'Live Oak',
   'Lakeview', 'Ridgeline', 'Hillcrest', 'Bayview', 'Orchard',
 ];
+const STREET_SUFFIXES = ['St', 'Ave', 'Dr', 'Ln', 'Ct', 'Way'];
 
-function generateCityLeads(hotspot) {
-  const rand = seededRandom(hashString(hotspot.id + '-city'));
-  const leadClusters = 3 + Math.floor(rand() * 2); // 3-4 lead pins
-  const leads = [];
+function generateNeighborhoods(cityStat) {
+  if (cityStat.id === 'fl-orlando') return ORLANDO_NEIGHBORHOODS;
 
-  for (let i = 0; i < leadClusters; i++) {
-    const angle = rand() * Math.PI * 2;
-    const dist = 0.01 + rand() * 0.04; // degrees, roughly neighborhood-scale
-    const lat = hotspot.lat + Math.cos(angle) * dist;
-    const lng = hotspot.lng + Math.sin(angle) * dist;
-    const opportunity = clamp01(hotspot.opportunity + (rand() - 0.4) * 0.3);
-
-    const homesWithoutSolar = 80 + Math.floor(rand() * 260);
-    const avgRoofSqft = 1400 + Math.floor(rand() * 900);
-    const estAnnualSavings = 900 + Math.floor(rand() * 900);
-
-    leads.push({
-      id: `${hotspot.id}-lead${i}`,
-      street: `${STREET_NAMES[Math.floor(rand() * STREET_NAMES.length)]} ${['St', 'Ave', 'Dr', 'Ln'][Math.floor(rand() * 4)]}`,
-      lat,
-      lng,
-      opportunity,
-      homesWithoutSolar,
-      avgRoofSqft,
-      estAnnualSavings,
+  const rand = seededRandom(hashString(cityStat.id + '-hoods'));
+  const count = 4 + Math.floor(rand() * 3); // 4-6
+  const hoods = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + rand() * 0.8;
+    const dist = 0.012 + rand() * 0.03; // stay near the real city center
+    hoods.push({
+      name: GENERIC_HOOD_NAMES[(i + Math.floor(rand() * 3)) % GENERIC_HOOD_NAMES.length],
+      lat: cityStat.lat + Math.cos(angle) * dist,
+      lng: cityStat.lng + Math.sin(angle) * dist * 1.15,
+      base: clamp(cityStat.coverage + (rand() - 0.5) * 0.5, 0.05, 0.9),
     });
   }
-  return leads;
+  return hoods;
 }
 
-const CITY_HALF_SPAN_DEG = 0.09;
-const CITY_GRID_SIZE = 24;
-const CITY_SIGMA_DEG = 0.025;
+// Suburban mini-grid per neighborhood: rows of houses along east-west streets.
+function generateHousesForHood(cityStat, hood, hoodIndex) {
+  const rand = seededRandom(hashString(cityStat.id + '-' + hood.name + hoodIndex));
+  const rows = 5 + Math.floor(rand() * 3);      // streets
+  const cols = 6 + Math.floor(rand() * 4);      // houses per street
+  const rowGap = 0.00165;                        // ~180m between streets
+  const colGap = 0.00105;                        // ~100m between houses
+  const houses = [];
 
-function buildCityField(hotspot, leads) {
-  const bounds = {
-    latMin: hotspot.lat - CITY_HALF_SPAN_DEG,
-    latMax: hotspot.lat + CITY_HALF_SPAN_DEG,
-    lngMin: hotspot.lng - CITY_HALF_SPAN_DEG,
-    lngMax: hotspot.lng + CITY_HALF_SPAN_DEG,
-  };
-  return buildField(leads, bounds, CITY_GRID_SIZE, CITY_SIGMA_DEG, 0.05);
+  const streetOfRow = [];
+  for (let r = 0; r < rows; r++) {
+    streetOfRow.push(
+      STREET_NAMES[Math.floor(rand() * STREET_NAMES.length)] + ' ' +
+      STREET_SUFFIXES[Math.floor(rand() * STREET_SUFFIXES.length)]
+    );
+  }
+
+  const lat0 = hood.lat - (rows / 2) * rowGap;
+  const lng0 = hood.lng - (cols / 2) * colGap;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (rand() < 0.16) continue; // gaps -> looks organic, not a perfect grid
+      const coverage = clamp(hood.base + (rand() - 0.5) * 0.34, 0.02, 0.98);
+      const roofSqft = 1300 + Math.floor(rand() * 1200);
+      houses.push({
+        lat: lat0 + r * rowGap + (rand() - 0.5) * 0.0003,
+        lng: lng0 + c * colGap + (rand() - 0.5) * 0.0002,
+        coverage,
+        hood: hood.name,
+        address: (100 + c * 8 + Math.floor(rand() * 7)) + ' ' + streetOfRow[r],
+        roofSqft,
+        hasSolar: coverage >= 0.5,
+        // Sales pitch: the LESS covered a home is, the more it saves by going solar.
+        estAnnualSavings: Math.round((520 + roofSqft * 0.9) * (1 - coverage) + 240),
+      });
+    }
+  }
+  return houses;
 }
 
-// ---- Precompute everything once at load -------------------------------
-// Attaches ._regionalField / ._clusters onto each metro, and
-// ._cityField / ._leads onto each cluster, so drill-down clicks are pure
-// cache lookups with zero generation cost.
-let GLOBAL_FIELD = null;
+const _houseCache = {};
 
-function precomputeAllData() {
-  GLOBAL_FIELD = buildGlobalField();
-
-  GLOBAL_METROS.forEach((metro) => {
-    const clusters = generateRegionalClusters(metro);
-    metro._clusters = clusters;
-    metro._regionalField = buildRegionalField(metro, clusters);
-
-    clusters.forEach((cluster) => {
-      const leads = generateCityLeads(cluster);
-      cluster._leads = leads;
-      cluster._cityField = buildCityField(cluster, leads);
-    });
+function getCityDetail(cityStat) {
+  if (_houseCache[cityStat.id]) return _houseCache[cityStat.id];
+  const hoods = generateNeighborhoods(cityStat);
+  const houses = [];
+  hoods.forEach((hood, i) => {
+    houses.push.apply(houses, generateHousesForHood(cityStat, hood, i));
   });
+  const detail = { hoods, houses };
+  _houseCache[cityStat.id] = detail;
+  return detail;
 }

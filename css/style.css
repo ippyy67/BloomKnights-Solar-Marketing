@@ -955,3 +955,16 @@ html, body {
 }
 
 .ai-generate { width: 100%; }
+
+.live-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  color: #34d399;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  vertical-align: 1px;
+}

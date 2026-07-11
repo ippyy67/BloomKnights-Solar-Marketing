@@ -38,12 +38,16 @@
 2. **Progressive drill-down tells a story** — USA choropleth → Florida cities →
    Orlando neighborhoods → individual real homes, one visualization per level,
    with a consistent color rule (red = no coverage → blue = full coverage).
-3. **The houses are real.** At the street level, every dot is an actual
+3. **The featured home's numbers are real.** Peak sun hours come live from
+   NREL's Solar Resource API and production/savings/payback from NREL PVWatts
+   v8 — the same model the solar industry quotes from — for Pine Hills'
+   actual coordinates (look for the green 'live · NREL' badge on the card).
+4. **The houses are real.** At the street level, every dot is an actual
    building footprint pulled live from OpenStreetMap — not decoration.
-4. **AI with guardrails.** Structured output means the model can't hallucinate
+5. **AI with guardrails.** Structured output means the model can't hallucinate
    the UI; caching means the demo never re-bills or stalls; the fallback chain
    means a model deprecation can't kill it.
-5. **It degrades gracefully.** No network? The neighborhood falls back to a
+6. **It degrades gracefully.** No network? The neighborhood falls back to a
    modeled plat. Model gone? Next in the chain. Photo 404? Placeholder.
 
 ## How to talk about the data (the honest, strong version)
@@ -78,7 +82,8 @@ Shorter version if asked point-blank "is this data real?":
 | State/city coverage %   | Modeled                | EIA Form 861, NREL Solar Installation data |
 | Building footprints     | **Real (OSM, live)**   | Same, or Microsoft Building Footprints     |
 | Roof size / age / type  | Modeled                | County property appraiser (Orange County)  |
-| Sun hours / shade       | Modeled                | Google Solar API, LIDAR analysis           |
+| Peak sun hours          | **Real (NREL, live)**  | Same (NREL Solar Resource API)             |
+| Shade                   | Modeled                | Google Solar API, LIDAR analysis           |
 | Utility bill / usage    | Derived from real rates| Utility APIs / customer-provided bills     |
-| System size / cost / payback | Gemini (live)     | NREL PVWatts + installer pricing data      |
+| Production / savings / payback | **Real (NREL PVWatts v8, live)** | Same + installer pricing data |
 | CO₂ / environmental offsets  | Gemini (live)     | EPA AVERT emission factors                 |

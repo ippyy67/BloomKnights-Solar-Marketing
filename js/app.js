@@ -201,6 +201,7 @@ function showListingDetail(listing, hood) {
     ['Roof age', listing.roofAge],
     ['Orientation', listing.orientation],
     ['Peak sun', listing.sunHours],
+    ['Est. production', listing.annualProduction],
     ['Shade', listing.shade],
     ['Utility provider', listing.utility],
     ['Utility bill', listing.utilityBill],
@@ -239,7 +240,7 @@ function showListingDetail(listing, hood) {
       <div class="chips">${chips}</div>
       ${(listing.aiEnabled || listing.aiSummary || cachedAnalysis)
         ? `<div class="ai-summary" id="ai-summary" data-address="${listing.address}">${summaryHtml}</div>` : ''}
-      <h5 class="detail-section-title">Solar snapshot</h5>
+      <h5 class="detail-section-title">Solar snapshot${listing.liveData ? ' <span class="live-badge">live · NREL</span>' : ''}</h5>
       <div class="snapshot-grid">${snapshotRows}</div>
     </div>
   `, { detailMode: true, dock: currentLevel === 'hood' });
@@ -713,3 +714,4 @@ if (splashEl) {
 buildStateLayer();
 goUSA({ fly: false });
 warmHoodData();
+if (typeof warmLiveData === 'function') warmLiveData();

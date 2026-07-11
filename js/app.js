@@ -252,8 +252,7 @@ function setStateTooltips() {
     const abbr = l.feature.properties.abbr;
     if (currentLevel === 'usa') {
       const cov = STATE_COVERAGE[abbr] !== undefined ? STATE_COVERAGE[abbr] : 0.2;
-      const suffix = abbr === DEMO_PATH.state ? ' — click to drill in' : '';
-      l.bindTooltip(l.feature.properties.name + ' — ' + pct(cov) + ' renewable coverage' + suffix, { sticky: true, direction: 'top' });
+      l.bindTooltip(l.feature.properties.name + ' — ' + pct(cov) + ' renewable coverage', { sticky: true, direction: 'top' });
     } else if (abbr === selectedAbbr) {
       if (currentLevel === 'city') {
         l.bindTooltip(ORLANDO.name + ' — ' + pct(ORLANDO.coverage) + ' renewable coverage', { sticky: true, direction: 'top' });
@@ -336,7 +335,7 @@ function goUSA(opts) {
     fly: fly ? () => map.flyTo([38.8, -96.9], 4, { duration: 0.7 }) : null,
   });
 
-  setLegend('Renewable Coverage', 'Share of households on renewable energy, by state. Hover any state — click Florida to drill in.');
+  setLegend('Renewable Coverage', 'Share of households on renewable energy, by state. Hover any state, or click to drill in.');
   renderBreadcrumb([{ label: 'USA' }]);
 }
 
@@ -351,14 +350,6 @@ function addBubble(layerGroup, latlng, radius, coverage, tooltipHtml, clickable,
   }).addTo(layerGroup);
   marker.bindTooltip(tooltipHtml, { direction: 'top' });
   if (clickable) {
-    L.circleMarker(latlng, {
-      radius: radius + 6,
-      color: '#ff8a3d',
-      weight: 2,
-      dashArray: '5 5',
-      fill: false,
-      interactive: false,
-    }).addTo(layerGroup);
     marker.on('click', onClick);
   }
   return marker;
@@ -385,7 +376,7 @@ function goState(abbr, opts) {
           [city.lat, city.lng],
           r,
           city.coverage,
-          '<b>' + city.name + '</b><br/>' + pct(city.coverage) + ' coverage · ~' + fmt(city.uncovered) + ' homes without renewables' + (clickable ? '<br/>— click to drill in —' : ''),
+          '<b>' + city.name + '</b><br/>' + pct(city.coverage) + ' coverage · ~' + fmt(city.uncovered) + ' homes without renewables',
           clickable,
           () => goCity(city)
         );
@@ -398,7 +389,7 @@ function goState(abbr, opts) {
     populate,
     });
 
-  setLegend(stateName(abbr) + ' — City Coverage', 'Bigger, redder circles = more homes without renewables. Hover any city — click Orlando to drill in.');
+  setLegend(stateName(abbr) + ' — City Coverage', 'Bigger, redder circles = more homes without renewables. Hover a city, or click to drill in.');
   renderBreadcrumb([{ label: 'USA', go: () => goUSA() }, { label: stateName(abbr) }]);
 }
 
@@ -417,7 +408,7 @@ function goCity(city, opts) {
           [h.lat, h.lng],
           r,
           h.coverage,
-          '<b>' + h.name + '</b><br/>' + pct(h.coverage) + ' coverage · ~' + fmt(h.uncovered) + ' homes without renewables' + (clickable ? '<br/>— click to view listings —' : ''),
+          '<b>' + h.name + '</b><br/>' + pct(h.coverage) + ' coverage · ~' + fmt(h.uncovered) + ' homes without renewables',
           clickable,
           () => goHood(h)
         );
@@ -437,7 +428,7 @@ function goCity(city, opts) {
     populate,
   });
 
-  setLegend(city.name + ' — Neighborhood Coverage', 'Hover a bubble for neighborhood stats — click Pine Hills to open nearby home listings.');
+  setLegend(city.name + ' — Neighborhood Coverage', 'Hover a bubble for neighborhood stats, or click one to open nearby home listings.');
   renderBreadcrumb([
     { label: 'USA', go: () => goUSA() },
     { label: stateName(selectedAbbr), go: () => goState(selectedAbbr) },

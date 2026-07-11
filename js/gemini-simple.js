@@ -19,8 +19,14 @@ function getApiKey() {
 
 function hasGeminiKey() { return !!getApiKey(); }
 
-async function callGeminiApi(apiKey, promptText, jsonSchema) {
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+// Free-tier models, newest first. gemini-2.0-flash was shut down 2026-06-01;
+// if a model errors with quota/not-found, we fall through to the next one.
+const GEMINI_MODELS = window.GEMINI_MODELS ||
+  ['gemini-3-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+let activeModelIdx = 0;
+
+async function callGeminiModel(apiKey, model, promptText, jsonSchema) {
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -32,6 +38,25 @@ async function callGeminiApi(apiKey, promptText, jsonSchema) {
   const data = await response.json();
   if (!response.ok) throw new Error((data.error && data.error.message) || 'API error');
   return JSON.parse(data.candidates[0].content.parts[0].text);
+}
+
+async function callGeminiApi(apiKey, promptText, jsonSchema) {
+  let lastErr = null;
+  for (let i = activeModelIdx; i < GEMINI_MODELS.length; i++) {
+    try {
+      const result = await callGeminiModel(apiKey, GEMINI_MODELS[i], promptText, jsonSchema);
+      activeModelIdx = i; // stick with the model that worked
+      return result;
+    } catch (err) {
+      lastErr = err;
+      const msg = (err && err.message || '').toLowerCase();
+      const retriable = msg.indexOf('quota') !== -1 || msg.indexOf('exceeded') !== -1 ||
+        msg.indexOf('not found') !== -1 || msg.indexOf('deprecated') !== -1 ||
+        msg.indexOf('unsupported') !== -1;
+      if (!retriable) throw err;
+    }
+  }
+  throw lastErr;
 }
 
 function aiCacheKey(listing) { return 'sunview-ai-' + listing.address; }

@@ -118,9 +118,19 @@ function hideLoader() {
 }
 
 // ---- UI helpers ---------------------------------------------------------------
+// Real, citable national benchmark shown per level (sources: DATA_SOURCES.md)
+const LEVEL_BENCHMARKS = {
+  usa: 'National avg: ~7% of U.S. homes have rooftop solar (SEIA)',
+  state: 'Florida ranks #3 in U.S. installed solar capacity (SEIA)',
+  city: 'Orlando: #32 of 70 U.S. cities for solar capacity (Shining Cities)',
+  hood: 'U.S. solar adopters earn $115k vs $75k median income (LBNL)',
+};
+
 function setLegend(title, hint) {
   document.getElementById('legend-title').textContent = title;
   document.getElementById('legend-hint').textContent = hint;
+  const src = document.getElementById('legend-source');
+  if (src) src.textContent = LEVEL_BENCHMARKS[currentLevel] || LEVEL_BENCHMARKS.usa;
 }
 
 function showInfoPanel(html, options) {

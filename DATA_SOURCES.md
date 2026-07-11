@@ -22,6 +22,17 @@ numbers to cite when judges ask.
   neighborhood-scale adoption. Pine Hills' tracts score low in it.
   https://www.cell.com/joule/fulltext/S2542-4351(18)30570-1
 
+## Demo-path numbers (now computed, not tuned)
+
+| Place      | Households (Census)         | Coverage                          | = Homes with solar |
+| ---------- | --------------------------- | --------------------------------- | ------------------ |
+| Florida    | ~8.8M                       | 7% (SEIA national avg)            | ~616,000           |
+| Orlando    | 131,000 (Census/DataUSA '24)| 7% (SEIA national avg)            | ~9,170             |
+| Pine Hills | 23,200 (Census 2024)        | 7% x 0.4 LBNL equity factor = 2.8%| ~650               |
+
+"Homes without renewables" figures in tooltips are households x (1 - coverage)
+using these real counts.
+
 ## National (USA view)
 
 - **~7% of U.S. homes have rooftop solar** (~4.7M households, early 2025);

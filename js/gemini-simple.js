@@ -11,19 +11,13 @@
 const NATIONAL_AVG_KWH = 903;      // avg US household kWh / month
 const FLORIDA_RATE = 0.1538;       // $ / kWh
 
-function hasGeminiKey() {
-  try { return !!localStorage.getItem('GEMINI_API_KEY'); } catch (e) { return false; }
+// Key sources, in order: js/config.js -> localStorage. Never prompts.
+function getApiKey() {
+  if (window.GEMINI_API_KEY) return window.GEMINI_API_KEY;
+  try { return localStorage.getItem('GEMINI_API_KEY') || null; } catch (e) { return null; }
 }
 
-function getApiKey() {
-  let apiKey = null;
-  try { apiKey = localStorage.getItem('GEMINI_API_KEY'); } catch (e) {}
-  if (!apiKey) {
-    apiKey = prompt('Enter your Google Gemini API key (free at https://aistudio.google.com/app/apikey):');
-    if (apiKey) try { localStorage.setItem('GEMINI_API_KEY', apiKey.trim()); } catch (e) {}
-  }
-  return apiKey;
-}
+function hasGeminiKey() { return !!getApiKey(); }
 
 async function callGeminiApi(apiKey, promptText, jsonSchema) {
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
@@ -50,7 +44,11 @@ async function generateListingAnalysis(listing) {
   const slot = document.getElementById('ai-summary');
   if (!slot) return;
   const apiKey = getApiKey();
-  if (!apiKey) return;
+  if (!apiKey) {
+    slot.innerHTML = '<p class="ai-note">No Gemini API key configured — paste it into <code>js/config.js</code> ' +
+      '(or set it once in the console: <code>localStorage.setItem(\'GEMINI_API_KEY\', \'...\')</code>), then reopen this card.</p>';
+    return;
+  }
 
   slot.innerHTML = '<p class="ai-note">&#10024; Generating financial &amp; environmental analysis&hellip;</p>';
 

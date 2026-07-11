@@ -605,6 +605,15 @@ map.on('zoomend', () => {
 }
 });
 
+// ---- Splash home screen -----------------------------------------------------------------------------
+const splashEl = document.getElementById('splash');
+if (splashEl) {
+  document.getElementById('enter-app').addEventListener('click', () => {
+    splashEl.classList.add('gone');
+    setTimeout(() => splashEl.remove(), 750);
+  });
+}
+
 // ---- Boot -----------------------------------------------------------------------------------------
 buildStateLayer();
 goUSA({ fly: false });

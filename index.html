@@ -3,18 +3,43 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>BloomKnights | Solar Coverage Map</title>
+<title>SunView Florida</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
+  <div id="splash">
+    <div class="splash-inner">
+      <div class="sun" aria-hidden="true">
+        <div class="sun-rays">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+        </div>
+        <div class="sun-core"></div>
+      </div>
+      <h1 class="splash-title">SunView <span>Florida</span></h1>
+      <p class="splash-tag">Find the neighborhoods solar hasn't reached yet.</p>
+      <button id="enter-app" type="button">Explore the map</button>
+    </div>
+  </div>
+
   <header id="app-header">
     <div class="brand">
       <span class="brand-mark">☀</span>
-      <span class="brand-name">BloomKnights</span>
-      <span class="brand-sub">Solar Coverage Map</span>
+      <span class="brand-name">SunView</span>
+      <span class="brand-sub">Florida</span>
     </div>
     <nav id="breadcrumb">
       <button class="crumb active">USA</button>

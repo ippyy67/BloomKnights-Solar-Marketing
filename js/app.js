@@ -67,6 +67,33 @@ function clearMarkers() {
   markerLayer.clearLayers();
 }
 
+function createHomeMarker(home) {
+  const marker = L.marker([home.lat, home.lng], {
+    icon: L.divIcon({
+      html: '<div class="sample-home-marker" title="' + home.street + '"></div>',
+      className: 'sample-home-marker-wrapper',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+    }),
+    riseOnHover: true,
+  }).addTo(markerLayer);
+
+  marker.bindTooltip(home.street, { direction: 'top' });
+  marker.bindPopup(`<b>${home.street}</b><br/>${Math.round(home.opportunity * 100)}% homes without solar`);
+
+  marker.on('click', () => {
+    showInfoPanel(`
+      <h4>${home.street} — Sample Home</h4>
+      <div class="stat"><span>Homes without solar</span><span>${home.homesWithoutSolar}</span></div>
+      <div class="stat"><span>Avg. roof size</span><span>${home.avgRoofSqft} sqft</span></div>
+      <div class="stat"><span>Est. annual savings</span><span>$${home.estAnnualSavings}</span></div>
+      <div class="stat"><span>Opportunity score</span><span>${Math.round(home.opportunity * 100)}%</span></div>
+    `);
+  });
+
+  return marker;
+}
+
 function showInfoPanel(html) {
   const panel = document.getElementById('info-panel');
   document.getElementById('info-content').innerHTML = html;
@@ -167,25 +194,7 @@ function goCity(hotspot, metro) {
   setHeat(hotspot._cityField, HEAT_PRESETS.city);
 
   hotspot._leads.forEach((lead) => {
-    const marker = L.circleMarker([lead.lat, lead.lng], {
-      radius: 6,
-      color: '#fff',
-      weight: 2,
-      fillColor: colorForOpportunity(lead.opportunity),
-      fillOpacity: 0.95,
-    }).addTo(markerLayer);
-
-    marker.bindPopup(`<b>${lead.street}</b><br/>${Math.round(lead.opportunity * 100)}% homes without solar`);
-
-    marker.on('click', () => {
-      showInfoPanel(`
-        <h4>${lead.street} — Lead Cluster</h4>
-        <div class="stat"><span>Homes without solar</span><span>${lead.homesWithoutSolar}</span></div>
-        <div class="stat"><span>Avg. roof size</span><span>${lead.avgRoofSqft} sqft</span></div>
-        <div class="stat"><span>Est. annual savings</span><span>$${lead.estAnnualSavings}</span></div>
-        <div class="stat"><span>Opportunity score</span><span>${Math.round(lead.opportunity * 100)}%</span></div>
-      `);
-    });
+    createHomeMarker(lead);
   });
 
   map.flyTo([hotspot.lat, hotspot.lng], 13, { duration: 0.6 });

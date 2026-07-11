@@ -210,3 +210,40 @@ html, body {
 .leaflet-popup-content b {
   color: var(--bloom-orange);
 }
+
+.sample-home-marker-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.sample-home-marker {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+.sample-home-marker::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--bloom-orange);
+}
+
+.sample-home-marker::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 10px;
+  background: #f7f8fa;
+  border: 1px solid rgba(28, 35, 49, 0.8);
+  border-radius: 2px;
+}

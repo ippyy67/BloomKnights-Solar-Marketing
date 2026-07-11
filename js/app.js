@@ -209,9 +209,12 @@ function showListingDetail(listing, hood) {
   ].filter((row) => row[1])
     .map((row) => `<div><span>${row[0]}</span><strong>${row[1]}</strong></div>`).join('');
 
-  const summaryHtml = listing.aiSummary
-    ? `<p>${listing.aiSummary}</p>`
-    : `<div class="ai-skeleton"><span></span><span></span><span></span></div>
+  const cachedAnalysis = (typeof getCachedAnalysis === 'function') ? getCachedAnalysis(listing) : null;
+  const summaryHtml = cachedAnalysis
+    ? cachedAnalysis
+    : listing.aiSummary
+      ? `<p>${listing.aiSummary}</p>`
+      : `<div class="ai-skeleton"><span></span><span></span><span></span></div>
        <p class="ai-note">AI summary pending — generated with Gemini at demo time</p>`;
 
   showInfoPanel(`
@@ -240,6 +243,24 @@ function showListingDetail(listing, hood) {
   const backButton = document.getElementById('listing-back');
   if (backButton) {
     backButton.onclick = () => showNeighborhoodListings(hood);
+  }
+
+  // Gemini finance + environmental analysis (js/gemini-simple.js).
+  // Cached result already rendered above; with a stored key, generate
+  // automatically; otherwise offer a one-click generate button.
+  window.currentListing = listing;
+  if (!cachedAnalysis && !listing.aiSummary && typeof generateListingAnalysis === 'function') {
+    if (hasGeminiKey()) {
+      generateListingAnalysis(listing);
+    } else {
+      const slot = document.getElementById('ai-summary');
+      if (slot) {
+        slot.innerHTML = '<button class="cta primary ai-generate" type="button">&#10024; Generate AI analysis</button>' +
+          '<p class="ai-note">Financial &amp; environmental breakdown, generated with Gemini</p>';
+        const genBtn = slot.querySelector('.ai-generate');
+        if (genBtn) genBtn.onclick = () => generateListingAnalysis(listing);
+      }
+    }
   }
 }
 

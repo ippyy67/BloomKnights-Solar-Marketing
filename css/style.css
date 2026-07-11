@@ -875,3 +875,70 @@ html, body {
 .loader-rays span:nth-child(6) { transform: rotate(112.5deg); }
 .loader-rays span:nth-child(7) { transform: rotate(135deg); }
 .loader-rays span:nth-child(8) { transform: rotate(157.5deg); }
+
+/* ---- Gemini analysis cards ---- */
+.ai-card {
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.ai-card:first-child { margin-top: 0; }
+
+.ai-finance {
+  background: rgba(255,138,61,0.08);
+  border: 1px solid rgba(255,138,61,0.22);
+}
+
+.ai-impact {
+  background: rgba(56,178,172,0.08);
+  border: 1px solid rgba(56,178,172,0.22);
+}
+
+.ai-card h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ai-finance h4 { color: var(--bloom-orange); }
+.ai-impact h4 { color: #38b2ac; }
+
+.ai-card .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.ai-card .row span { color: var(--bloom-muted); }
+.ai-card .row strong { text-align: right; max-width: 60%; }
+
+.val-green { color: #34d399; }
+.val-orange { color: var(--bloom-orange); }
+.val-blue { color: #60a5fa; }
+.val-purple { color: #a78bfa; }
+
+.ai-hook {
+  margin-top: 10px;
+  background: rgba(0,0,0,0.22);
+  border-left: 3px solid rgba(255,255,255,0.25);
+  padding: 10px;
+  border-radius: 4px;
+  font-style: italic;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--bloom-muted);
+}
+
+.ai-error {
+  color: #ff7b6b;
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.ai-generate { width: 100%; }

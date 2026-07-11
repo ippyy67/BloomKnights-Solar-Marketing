@@ -134,6 +134,124 @@ function showNeighborhoodListings(hood) {
   });
 }
 
+// ---- Gemini AI Integration -------------------------------------------------------
+const NATIONAL_AVG_KWH = 903;
+const FLORIDA_RATE = 0.1538;
+
+function getApiKey() {
+  let apiKey = localStorage.getItem('GEMINI_API_KEY');
+  if (!apiKey) {
+    apiKey = prompt('Enter your Google Gemini API key (free at https://aistudio.google.com/app/apikey):');
+    if (apiKey) localStorage.setItem('GEMINI_API_KEY', apiKey.trim());
+  }
+  return apiKey;
+}
+
+async function callGeminiApi(apiKey, promptText, jsonSchema) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: { responseMimeType: 'application/json', responseSchema: jsonSchema }
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'API error');
+  return JSON.parse(data.candidates[0].content.parts[0].text);
+}
+
+async function generateFinancesAndImpact(listing) {
+  const container = document.getElementById('ai-summary-container');
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  container.innerHTML = '<p style="color: var(--bloom-muted); font-size: 12px; padding: 8px 0;">✨ Generating financial & environmental analysis...</p>';
+
+  const rawBill = parseFloat(listing.utilityBill.replace(/[^0-9.]/g, ''));
+  const calculatedKwh = rawBill / FLORIDA_RATE;
+  const percentVsAvg = Math.round(((calculatedKwh - NATIONAL_AVG_KWH) / NATIONAL_AVG_KWH) * 100);
+
+  const propertyContext = `
+    Property: ${listing.address}
+    Bill: ${listing.utilityBill} (~${calculatedKwh.toFixed(0)} kWh/mo, ${percentVsAvg}% ${percentVsAvg > 0 ? 'above' : 'below'} national average)
+    Roof: ${listing.roofSqft} sqft, Shade: ${listing.shade}
+    Est. Savings: ${listing.estSavings}, Score: ${listing.score}/100
+  `;
+
+  const tasks = [
+    {
+      prompt: `Act as a Solar Financial Analyst. Based on:\n${propertyContext}\nCalculate realistic values for a residential installation. Provide a strategic 2-sentence sales hook.`,
+      schema: {
+        type: 'OBJECT',
+        properties: {
+          estimatedSystemCost: { type: 'STRING' },
+          annualSavings: { type: 'STRING' },
+          paybackPeriod: { type: 'STRING' },
+          roi: { type: 'STRING' },
+          financingOptions: { type: 'STRING' },
+          salesHook: { type: 'STRING' }
+        },
+        required: ['estimatedSystemCost', 'annualSavings', 'paybackPeriod', 'roi', 'financingOptions', 'salesHook']
+      }
+    },
+    {
+      prompt: `Act as an Environmental Impact Engineer. Based on:\n${propertyContext}\nCalculate eco-impact offsets for shifting to clean energy. Provide a compelling 2-sentence door opener.`,
+      schema: {
+        type: 'OBJECT',
+        properties: {
+          co2Reduction: { type: 'STRING' },
+          treesSaved: { type: 'STRING' },
+          waterSaved: { type: 'STRING' },
+          gridIndependence: { type: 'STRING' },
+          doorOpener: { type: 'STRING' }
+        },
+        required: ['co2Reduction', 'treesSaved', 'waterSaved', 'gridIndependence', 'doorOpener']
+      }
+    }
+  ];
+
+  try {
+    const [finance, impact] = await Promise.all(tasks.map(t => callGeminiApi(apiKey, t.prompt, t.schema)));
+
+    container.innerHTML = `
+      <!-- FINANCES CARD -->
+      <div style="background: rgba(255,138,61,0.08); border: 1px solid rgba(255,138,61,0.2); padding: 16px; border-radius: 10px; margin-top: 12px;">
+        <h4 style="color: var(--bloom-orange); margin: 0 0 12px 0; font-size: 13px; font-weight: 700;">💰 FINANCIAL ANALYSIS</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">System Cost</span><strong>${finance.estimatedSystemCost}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">Annual Savings</span><strong style="color: #34d399;">${finance.annualSavings}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">Payback Period</span><strong style="color: var(--bloom-orange);">${finance.paybackPeriod}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">ROI</span><strong style="color: #60a5fa;">${finance.roi}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">Financing</span><strong style="color: var(--bloom-text); text-align: right; max-width: 60%;">${finance.financingOptions}</strong></div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-left: 3px solid var(--bloom-orange); padding: 10px; border-radius: 4px; font-size: 11px; color: var(--bloom-muted); font-style: italic; line-height: 1.5;">
+          ${finance.salesHook}
+        </div>
+      </div>
+
+      <!-- IMPACT CARD -->
+      <div style="background: rgba(56,178,172,0.08); border: 1px solid rgba(56,178,172,0.2); padding: 16px; border-radius: 10px; margin-top: 12px;">
+        <h4 style="color: #38b2ac; margin: 0 0 12px 0; font-size: 13px; font-weight: 700;">🌱 ENVIRONMENTAL IMPACT</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">CO₂ Avoided/yr</span><strong>${impact.co2Reduction}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">Trees Equivalent</span><strong style="color: #34d399;">${impact.treesSaved}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">Water Saved/yr</span><strong style="color: #38bdf8;">${impact.waterSaved}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: var(--bloom-muted);">Grid Independence</span><strong style="color: #a78bfa;">${impact.gridIndependence}</strong></div>
+        </div>
+        <div style="background: rgba(0,0,0,0.2); border-left: 3px solid #38b2ac; padding: 10px; border-radius: 4px; font-size: 11px; color: var(--bloom-muted); font-style: italic; line-height: 1.5;">
+          "${impact.doorOpener}"
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    if (err.message.includes('API key not valid')) localStorage.removeItem('GEMINI_API_KEY');
+    container.innerHTML = `<p style="color: #e6402e; font-size: 12px;">Error: ${err.message}</p>`;
+  }
+}
+
+// ---- Listing detail view ---------------------------------------------------------
 function showListingDetail(listing, hood) {
   showInfoPanel(`
         <button class="detail-back" id="listing-back">← Back to listings</button>
@@ -166,8 +284,26 @@ function showListingDetail(listing, hood) {
             <div class="detail-label">Why it matters</div>
             <p>${listing.note}</p>
           </div>
+          <button onclick="generateFinancesAndImpact(currentListing)" style="
+            margin-top: 14px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--bloom-orange), #e6402e);
+            color: #1c1200;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          ">💰 Generate Finances & Impact</button>
+          <div id="ai-summary-container"></div>
         </div>
   `, { detailMode: true, dock: currentLevel === 'hood' });
+
+  window.currentListing = listing;
+
   const backButton = document.getElementById('listing-back');
   if (backButton) {
     backButton.onclick = () => showNeighborhoodListings(hood);

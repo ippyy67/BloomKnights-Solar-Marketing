@@ -135,43 +135,74 @@ function showNeighborhoodListings(hood) {
 }
 
 function showListingDetail(listing, hood) {
+  const photoHtml = listing.photo ? `
+    <div class="detail-photo">
+      <img src="${listing.photo}" alt="${listing.address}" data-alt="${listing.photoFallback || ''}"
+        onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt='';}else{this.closest('.detail-photo').classList.add('no-photo');this.remove();}" />
+      <span class="photo-badge">${listing.badge}</span>
+    </div>` : '';
+
+  const chips = (listing.highlights || [listing.note]).map((h) => `<span class="chip">${h}</span>`).join('');
+
+  const snapshotRows = [
+    ['Solar coverage', listing.coverage],
+    ['Solar installed', listing.solarInstalled],
+    ['Roof size', listing.roofSqft ? listing.roofSqft + ' sqft' : null],
+    ['Roof type', listing.roofType],
+    ['Roof age', listing.roofAge],
+    ['Orientation', listing.orientation],
+    ['Peak sun', listing.sunHours],
+    ['Shade', listing.shade],
+    ['Utility provider', listing.utility],
+    ['Utility bill', listing.utilityBill],
+    ['Suggested system', listing.systemSize],
+    ['Install estimate', listing.installEstimate],
+    ['Payback period', listing.paybackYears],
+    ['Incentives', listing.incentives],
+    ['Est. savings', listing.estSavings],
+    ['Match score', listing.score != null ? listing.score + '/100' : null],
+  ].filter((row) => row[1])
+    .map((row) => `<div><span>${row[0]}</span><strong>${row[1]}</strong></div>`).join('');
+
+  const summaryHtml = listing.aiSummary
+    ? `<p>${listing.aiSummary}</p>`
+    : `<div class="ai-skeleton"><span></span><span></span><span></span></div>
+       <p class="ai-note">AI summary pending — generated with Gemini at demo time</p>`;
+
   showInfoPanel(`
-        <button class="detail-back" id="listing-back">← Back to listings</button>
-        <div class="listing-detail-card">
-          <div class="listing-topline">
-            <strong>${listing.address}</strong>
-            <span class="listing-badge">${listing.badge}</span>
-          </div>
-          <div class="listing-detail-hero">
-            <div>
-              <div class="detail-label">Match score</div>
-              <div class="detail-value">${listing.score}/100</div>
-            </div>
-            <div>
-              <div class="detail-label">Utility bill</div>
-              <div class="detail-value">${listing.utilityBill}</div>
-            </div>
-          </div>
-          <div class="listing-metrics detail-metrics">
-            <div><span>Solar coverage</span><strong>${listing.coverage}</strong></div>
-            <div><span>Solar installed</span><strong>${listing.solarInstalled}</strong></div>
-            <div><span>Roof size</span><strong>${listing.roofSqft} sqft</strong></div>
-            <div><span>Est. savings</span><strong>${listing.estSavings}</strong></div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-label">Shade</div>
-            <div class="detail-value">${listing.shade}</div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-label">Why it matters</div>
-            <p>${listing.note}</p>
-          </div>
-        </div>
+    <button class="detail-back" id="listing-back">← Back to listings</button>
+    <div class="listing-detail-card">
+      ${photoHtml}
+      <div class="detail-address">${listing.address}</div>
+      <p class="hood-tag">${hood.name} · Orlando, FL</p>
+      <div class="stat-strip">
+        <div><strong>${listing.coverage}</strong><span>solar coverage</span></div>
+        <div><strong>${listing.roofSqft}</strong><span>sqft roof</span></div>
+        <div><strong>${listing.utilityBill}</strong><span>utility bill</span></div>
+      </div>
+      <div class="cta-row">
+        <button class="cta primary" type="button">Add to canvass route</button>
+        <button class="cta" type="button">Contact homeowner</button>
+      </div>
+      <h5 class="detail-section-title">What's special</h5>
+      <div class="chips">${chips}</div>
+      <div class="ai-summary" id="ai-summary" data-address="${listing.address}">${summaryHtml}</div>
+      <h5 class="detail-section-title">Solar snapshot</h5>
+      <div class="snapshot-grid">${snapshotRows}</div>
+    </div>
   `, { detailMode: true, dock: currentLevel === 'hood' });
+
   const backButton = document.getElementById('listing-back');
   if (backButton) {
     backButton.onclick = () => showNeighborhoodListings(hood);
   }
+}
+
+// Gemini hook: call setListingSummary('...') to fill the open card\'s AI slot.
+// The slot carries data-address so the integration knows which home is shown.
+function setListingSummary(text) {
+  const slot = document.getElementById('ai-summary');
+  if (slot) slot.innerHTML = '<p>' + text + '</p>';
 }
 
 function hideInfoPanel() {

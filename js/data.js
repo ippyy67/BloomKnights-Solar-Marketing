@@ -104,12 +104,33 @@ const HERO_HOOD_NAME = 'Pine Hills';
 
 const NEIGHBORHOOD_LISTINGS = {
   'Pine Hills': [
-    { address: '2148 Sun Meadow Ln', coverage: '14%', solarInstalled: 'No', roofSqft: '1,620', estSavings: '$1,240/yr', badge: 'Fast fit', note: 'Large roof and strong savings upside', score: 82, utilityBill: '$178/mo', shade: 'Low' },
+    {
+      address: '2148 Sun Meadow Ln', coverage: '14%', solarInstalled: 'No', roofSqft: '1,620',
+      estSavings: '$1,240/yr', badge: 'Hot lead', note: 'Large roof and strong savings upside',
+      score: 82, utilityBill: '$178/mo', shade: 'Low',
+      // Demo photo (hotlinked; photoFallback used if primary fails to load)
+      photo: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=900&q=75&fm=jpg',
+      photoFallback: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=900&q=75&fm=jpg',
+      beds: 3, baths: 2, homeSqft: '1,860', yearBuilt: 2004,
+      roofType: 'Asphalt shingle', roofAge: '6 yrs', orientation: 'South-facing', sunHours: '5.8 hrs/day',
+      systemSize: '7.2 kW', installEstimate: '$18,400', paybackYears: '7.1 yrs',
+      incentives: '30% federal ITC eligible', utility: 'Duke Energy',
+      highlights: ['South-facing roof', 'No shade', 'High utility bill', 'Roof under 10 yrs old'],
+      aiSummary: null, // filled by the Gemini integration at demo time
+    },
     { address: '1820 Willow Bend St', coverage: '22%', solarInstalled: 'No', roofSqft: '1,940', estSavings: '$1,540/yr', badge: 'High match', note: 'Great roof profile for solar conversion', score: 91, utilityBill: '$201/mo', shade: 'Low' },
     { address: '1655 Bloom Ave', coverage: '31%', solarInstalled: 'Yes', roofSqft: '1,480', estSavings: '$980/yr', badge: 'Warm lead', note: 'Ideal for a targeted outreach push', score: 74, utilityBill: '$164/mo', shade: 'Medium' },
     { address: '1912 Cedar Xing', coverage: '19%', solarInstalled: 'No', roofSqft: '1,760', estSavings: '$1,310/yr', badge: 'Queue next', note: 'Open roof area with good exposure', score: 79, utilityBill: '$186/mo', shade: 'Low' },
     { address: '2087 Solar Way', coverage: '27%', solarInstalled: 'No', roofSqft: '1,840', estSavings: '$1,410/yr', badge: 'Budget fit', note: 'Strong potential for a lower-cost install', score: 87, utilityBill: '$192/mo', shade: 'Low' },
-    { address: '1736 Palm Ct', coverage: '86%', solarInstalled: 'Yes', roofSqft: '1,560', estSavings: '$310/yr', badge: 'Covered', note: 'Already on renewables — the reference home for this street', score: 38, utilityBill: '$104/mo', shade: 'Low' },
+    {
+      address: '1736 Palm Ct', coverage: '86%', solarInstalled: 'Yes', roofSqft: '1,560',
+      estSavings: '$310/yr', badge: 'Covered', note: 'Already on renewables — the reference home for this street',
+      score: 38, utilityBill: '$104/mo', shade: 'Low',
+      roofType: 'Asphalt shingle', roofAge: '4 yrs', orientation: 'South-west', sunHours: '5.6 hrs/day',
+      systemSize: '6.0 kW (installed 2023)', utility: 'Duke Energy',
+      highlights: ['Already covered', 'Referral candidate', 'Battery add-on prospect'],
+      aiSummary: null,
+    },
     { address: '2210 Knight Grove Rd', coverage: '16%', solarInstalled: 'No', roofSqft: '1,720', estSavings: '$1,260/yr', badge: 'Fresh lead', note: 'Wide roof with minimal tree obstruction', score: 84, utilityBill: '$184/mo', shade: 'Low' },
     { address: '2398 Silver Pine Dr', coverage: '24%', solarInstalled: 'No', roofSqft: '1,900', estSavings: '$1,450/yr', badge: 'Strong fit', note: 'Great roof geometry and high utility spend', score: 89, utilityBill: '$205/mo', shade: 'Low' },
   ],

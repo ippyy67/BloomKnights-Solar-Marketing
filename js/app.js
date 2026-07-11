@@ -75,9 +75,20 @@ const HERO_HOOD = ORLANDO_HOODS.find((h) => h.name === DEMO_PATH.hood);
 const levelLoader = document.getElementById('level-loader');
 let loaderShownAt = 0;
 let loaderHideTimer = null;
+let loaderWantsHide = false;
+let tilesLoading = false;
+
+// The loader only lifts once the basemap tiles for the new view have actually
+// arrived (or after a 3.5s safety cap), so the page underneath is fully drawn.
+tiles.on('loading', () => { tilesLoading = true; });
+tiles.on('load', () => {
+  tilesLoading = false;
+  if (loaderWantsHide) hideLoader();
+});
 
 function showLoader() {
   if (!levelLoader) return;
+  loaderWantsHide = false;
   if (loaderHideTimer) { clearTimeout(loaderHideTimer); loaderHideTimer = null; }
   loaderShownAt = Date.now();
   levelLoader.classList.add('active');
@@ -85,12 +96,24 @@ function showLoader() {
 
 function hideLoader() {
   if (!levelLoader) return;
+  loaderWantsHide = true;
+  if (loaderHideTimer) { clearTimeout(loaderHideTimer); loaderHideTimer = null; }
+  if (tilesLoading) {
+    // tiles still streaming in: recheck at the safety cap; the tile 'load'
+    // event will normally get here first
+    loaderHideTimer = setTimeout(() => {
+      loaderHideTimer = null;
+      tilesLoading = false;
+      hideLoader();
+    }, Math.max(0, 3500 - (Date.now() - loaderShownAt)));
+    return;
+  }
   // keep it up briefly so it reads as a deliberate transition, not a flicker
   const wait = Math.max(0, 450 - (Date.now() - loaderShownAt));
-  if (loaderHideTimer) clearTimeout(loaderHideTimer);
   loaderHideTimer = setTimeout(() => {
     levelLoader.classList.remove('active');
     loaderHideTimer = null;
+    loaderWantsHide = false;
   }, wait);
 }
 

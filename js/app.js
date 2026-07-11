@@ -71,6 +71,29 @@ let flying = false;         // suppress zoom-demotion during programmatic flight
 const ORLANDO = CITY_STATS.FL.find((c) => c.name === DEMO_PATH.city);
 const HERO_HOOD = ORLANDO_HOODS.find((h) => h.name === DEMO_PATH.hood);
 
+// ---- Level loader: mini sun overlay masking region transitions -----------------
+const levelLoader = document.getElementById('level-loader');
+let loaderShownAt = 0;
+let loaderHideTimer = null;
+
+function showLoader() {
+  if (!levelLoader) return;
+  if (loaderHideTimer) { clearTimeout(loaderHideTimer); loaderHideTimer = null; }
+  loaderShownAt = Date.now();
+  levelLoader.classList.add('active');
+}
+
+function hideLoader() {
+  if (!levelLoader) return;
+  // keep it up briefly so it reads as a deliberate transition, not a flicker
+  const wait = Math.max(0, 450 - (Date.now() - loaderShownAt));
+  if (loaderHideTimer) clearTimeout(loaderHideTimer);
+  loaderHideTimer = setTimeout(() => {
+    levelLoader.classList.remove('active');
+    loaderHideTimer = null;
+  }, wait);
+}
+
 // ---- UI helpers ---------------------------------------------------------------
 function setLegend(title, hint) {
   document.getElementById('legend-title').textContent = title;
@@ -299,6 +322,7 @@ function stateName(abbr) {
 function transition(opts) {
   viewSeq++;
   const seq = viewSeq;
+  showLoader();
   hideInfoPanel();
   cityLayer.clearLayers();
   hoodLayer.clearLayers();
@@ -313,11 +337,15 @@ function transition(opts) {
     flying = true;
     map.once('moveend', () => {
       flying = false;
-      if (seq === viewSeq && opts.populate) opts.populate();
+      if (seq === viewSeq) {
+        if (opts.populate) opts.populate();
+        if (!opts.keepLoader) hideLoader();
+      }
     });
     opts.fly();
-  } else if (opts.populate) {
-    opts.populate();
+  } else {
+    if (opts.populate) opts.populate();
+    if (!opts.keepLoader) hideLoader();
   }
 }
 
@@ -577,12 +605,14 @@ function goHood(hood, opts) {
       const houses = data ? renderRealHood(hood, data) : renderPlatHood(hood);
       placeHeroDots(houses, hood);
       showNeighborhoodListings(hood);
+      hideLoader();
     });
   };
 
   transition({
     fly: fly ? () => map.flyToBounds(targetBounds.pad(0.05), { duration: 0.6 }) : null,
     populate,
+    keepLoader: true,
   });
 
   setLegend(hood.name + ' — Lead Map', 'Loading real parcel data…');

@@ -1,7 +1,13 @@
 /*
  * app.js
  * Map setup + drill-down interaction: Global -> Regional -> City.
+ *
+ * All heat data (global/regional/city fields) is precomputed once at boot
+ * via precomputeAllData() (see data.js), so every drill-down click is just
+ * reading a cached array -- no generation cost at click time.
  */
+
+precomputeAllData();
 
 const map = L.map('map', {
   worldCopyJump: true,
@@ -15,23 +21,36 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 }).addTo(map);
 
 const HEAT_GRADIENT = {
-  0.0: '#2b6cb0',
-  0.3: '#38b2ac',
-  0.55: '#ecc94b',
-  0.75: '#ed8936',
+  0.0: '#1a3a6b',
+  0.2: '#2b6cb0',
+  0.4: '#38b2ac',
+  0.6: '#ecc94b',
+  0.8: '#ed8936',
   1.0: '#e53e3e',
 };
 
 let heatLayer = null;
 let markerLayer = L.layerGroup().addTo(map);
 
-function setHeat(points, radius, blur) {
+// Heat layer tuning per zoom level. Since the field is already a dense,
+// evenly-spaced grid, radius/blur just need to be big enough to merge
+// neighboring cells into a continuous surface -- not so big that the
+// canvas blur pass gets expensive on every pan frame.
+const HEAT_PRESETS = {
+  global:   { radius: 34, blur: 28 },
+  regional: { radius: 30, blur: 24 },
+  city:     { radius: 26, blur: 20 },
+};
+
+function setHeat(points, preset) {
   if (heatLayer) {
     map.removeLayer(heatLayer);
   }
   heatLayer = L.heatLayer(points, {
-    radius: radius,
-    blur: blur,
+    radius: preset.radius,
+    blur: preset.blur,
+    max: 1,
+    minOpacity: 0.35,
     maxZoom: 17,
     gradient: HEAT_GRADIENT,
   }).addTo(map);
@@ -60,7 +79,6 @@ document.getElementById('info-close').addEventListener('click', () => {
 
 // ---- Breadcrumb -----------------------------------------------------------
 function renderBreadcrumb(path) {
-  // path: [{level:'global', label:'Global'}, {level:'region', label, ref}, {level:'city', label, ref}]
   const nav = document.getElementById('breadcrumb');
   nav.innerHTML = '';
   path.forEach((step, i) => {
@@ -88,18 +106,16 @@ function renderBreadcrumb(path) {
 function goGlobal() {
   document.getElementById('info-panel').classList.add('hidden');
   clearMarkers();
-
-  const points = GLOBAL_METROS.map((m) => [m.lat, m.lng, m.opportunity]);
-  setHeat(points, 45, 35);
+  setHeat(GLOBAL_FIELD, HEAT_PRESETS.global);
 
   GLOBAL_METROS.forEach((metro) => {
     const marker = L.circleMarker([metro.lat, metro.lng], {
-      radius: 8,
+      radius: 7,
       className: 'metro-marker',
       color: '#fff',
       weight: 2,
       fillColor: colorForOpportunity(metro.opportunity),
-      fillOpacity: 0.9,
+      fillOpacity: 0.95,
     }).addTo(markerLayer);
 
     marker.bindTooltip(`${metro.name} — ${Math.round(metro.opportunity * 100)}% uncovered`, {
@@ -108,7 +124,7 @@ function goGlobal() {
     marker.on('click', () => goRegion(metro));
   });
 
-  map.flyTo([39.5, -98.35], 4, { duration: 0.9 });
+  map.flyTo([39.5, -98.35], 4, { duration: 0.6 });
   renderBreadcrumb([{ level: 'global', label: 'Global' }]);
 }
 
@@ -117,12 +133,12 @@ function goRegion(metro) {
   document.getElementById('info-panel').classList.add('hidden');
   clearMarkers();
 
-  const { points, clusters } = generateRegionalData(metro);
-  setHeat(points, 30, 25);
+  // Cached at boot -- no generation cost here.
+  setHeat(metro._regionalField, HEAT_PRESETS.regional);
 
-  clusters.forEach((cluster) => {
+  metro._clusters.forEach((cluster) => {
     const marker = L.circleMarker([cluster.lat, cluster.lng], {
-      radius: 9,
+      radius: 8,
       className: 'hotspot-marker',
       color: '#fff',
       weight: 2,
@@ -133,10 +149,10 @@ function goRegion(metro) {
     marker.bindTooltip(`${cluster.name} — ${Math.round(cluster.opportunity * 100)}% uncovered`, {
       direction: 'top',
     });
-    marker.on('click', () => goCity(cluster));
+    marker.on('click', () => goCity(cluster, metro));
   });
 
-  map.flyTo([metro.lat, metro.lng], 7, { duration: 0.9 });
+  map.flyTo([metro.lat, metro.lng], 7, { duration: 0.6 });
   renderBreadcrumb([
     { level: 'global', label: 'Global' },
     { level: 'region', label: metro.name, ref: metro },
@@ -144,26 +160,22 @@ function goRegion(metro) {
 }
 
 // ---- Level 3: City --------------------------------------------------------
-function goCity(hotspot) {
+function goCity(hotspot, metro) {
   clearMarkers();
 
-  const { points, leads } = generateCityData(hotspot);
-  setHeat(points, 20, 18);
+  // Cached at boot -- no generation cost here.
+  setHeat(hotspot._cityField, HEAT_PRESETS.city);
 
-  leads.forEach((lead) => {
+  hotspot._leads.forEach((lead) => {
     const marker = L.circleMarker([lead.lat, lead.lng], {
-      radius: 7,
+      radius: 6,
       color: '#fff',
       weight: 2,
       fillColor: colorForOpportunity(lead.opportunity),
       fillOpacity: 0.95,
     }).addTo(markerLayer);
 
-    const popupHtml = `
-      <b>${lead.street}</b><br/>
-      ${Math.round(lead.opportunity * 100)}% homes without solar
-    `;
-    marker.bindPopup(popupHtml);
+    marker.bindPopup(`<b>${lead.street}</b><br/>${Math.round(lead.opportunity * 100)}% homes without solar`);
 
     marker.on('click', () => {
       showInfoPanel(`
@@ -176,12 +188,10 @@ function goCity(hotspot) {
     });
   });
 
-  map.flyTo([hotspot.lat, hotspot.lng], 13, { duration: 0.9 });
-
-  const metro = GLOBAL_METROS.find((m) => hotspot.id.startsWith(m.id));
+  map.flyTo([hotspot.lat, hotspot.lng], 13, { duration: 0.6 });
   renderBreadcrumb([
     { level: 'global', label: 'Global' },
-    { level: 'region', label: metro ? metro.name : 'Region', ref: metro },
+    { level: 'region', label: metro.name, ref: metro },
     { level: 'city', label: hotspot.name },
   ]);
 }

@@ -8,9 +8,28 @@
  * hackathon build we synthesize plausible-looking data so the drill-down UX
  * (global -> regional -> city) can be demoed end to end.
  *
- * "opportunity" / heat weight = estimated share of homes in an area WITHOUT
- * solar (0 = fully covered, 1 = almost no solar penetration). Higher weight
- * is exactly what a solar sales team wants to find.
+ * "opportunity" = estimated share of homes in an area WITHOUT solar
+ * (0 = fully covered, 1 = almost no solar penetration). Higher is exactly
+ * what a solar sales team wants to find.
+ *
+ * RENDERING MODEL
+ * ----------------
+ * Instead of feeding Leaflet.heat a scatter of random jittered points (which
+ * reads as a cluster of blobs), we build a dense, evenly-spaced GRID over
+ * the relevant bounding box and assign every grid cell an intensity value
+ * via Gaussian falloff from the nearby "source" points (metros / hotspots /
+ * leads). That grid is what gets fed to the heat layer, so the result is a
+ * continuous, area-based gradient -- much closer to a real temperature map
+ * -- rather than a handful of visually separate dots. The clickable dot
+ * markers stay on top as the interactive layer.
+ *
+ * PRECOMPUTATION
+ * ----------------
+ * All regional and city fields are deterministic (seeded by id), so they're
+ * computed once up front (see precomputeAllData() at the bottom) instead of
+ * on every click. Drilling down is then just a cache lookup -- no per-click
+ * generation cost, which is what was making the regional transition feel
+ * slow.
  */
 
 // ---- Level 1: Global (major US metros) ----------------------------------
@@ -49,10 +68,52 @@ function hashString(str) {
   return Math.abs(h) || 1;
 }
 
-// ---- Level 2: Regional (generated around a clicked metro) ---------------
-// Produces a heat point cloud + a handful of clickable "hotspot" cluster
-// centers that the user can drill into for the city view.
-function generateRegionalData(metro) {
+function clamp01(n) {
+  return Math.max(0.03, Math.min(1, n));
+}
+
+// ---- Core field builder ---------------------------------------------------
+// sources: [{lat, lng, opportunity}]
+// bounds: {latMin, latMax, lngMin, lngMax}
+// Returns an array of [lat, lng, intensity] covering the whole bounding box.
+function buildField(sources, bounds, gridSize, sigmaDeg, baseline) {
+  const points = [];
+  const latStep = (bounds.latMax - bounds.latMin) / (gridSize - 1);
+  const lngStep = (bounds.lngMax - bounds.lngMin) / (gridSize - 1);
+  const twoSigmaSq = 2 * sigmaDeg * sigmaDeg;
+
+  for (let i = 0; i < gridSize; i++) {
+    const lat = bounds.latMin + i * latStep;
+    for (let j = 0; j < gridSize; j++) {
+      const lng = bounds.lngMin + j * lngStep;
+      let intensity = baseline;
+      for (let k = 0; k < sources.length; k++) {
+        const s = sources[k];
+        const dLat = lat - s.lat;
+        const dLng = lng - s.lng;
+        const distSq = dLat * dLat + dLng * dLng;
+        const falloff = Math.exp(-distSq / twoSigmaSq);
+        intensity += s.opportunity * falloff * 0.88;
+      }
+      points.push([lat, lng, clamp01(intensity)]);
+    }
+  }
+  return points;
+}
+
+// ---- Level 1 field: continental US ----------------------------------------
+const GLOBAL_BOUNDS = { latMin: 23, latMax: 49.5, lngMin: -125, lngMax: -66 };
+const GLOBAL_GRID_SIZE = 44;
+const GLOBAL_SIGMA_DEG = 2.6;
+
+function buildGlobalField() {
+  return buildField(GLOBAL_METROS, GLOBAL_BOUNDS, GLOBAL_GRID_SIZE, GLOBAL_SIGMA_DEG, 0.03);
+}
+
+// ---- Level 2: Regional (generated around a metro) --------------------------
+// Produces cluster "hotspot" centers (clickable dots) + a smooth field built
+// from those same clusters.
+function generateRegionalClusters(metro) {
   const rand = seededRandom(hashString(metro.id + '-region'));
   const clusterCount = 4 + Math.floor(rand() * 2); // 4-5 clusters
   const clusters = [];
@@ -69,33 +130,33 @@ function generateRegionalData(metro) {
       opportunity: intensity,
     });
   }
-
-  const points = [];
-  clusters.forEach((cluster) => {
-    const pointsInCluster = 30 + Math.floor(rand() * 20);
-    for (let j = 0; j < pointsInCluster; j++) {
-      points.push([
-        cluster.lat + (rand() - 0.5) * 0.35,
-        cluster.lng + (rand() - 0.5) * 0.35,
-        clamp01(cluster.opportunity + (rand() - 0.5) * 0.25),
-      ]);
-    }
-  });
-
-  return { points, clusters };
+  return clusters;
 }
 
-// ---- Level 3: City (generated around a clicked regional hotspot) --------
-// Produces a dense heat cloud plus a few mock "leads" — individual
-// uncovered-home clusters a sales rep could act on.
+const REGIONAL_HALF_SPAN_DEG = 2.2;
+const REGIONAL_GRID_SIZE = 30;
+const REGIONAL_SIGMA_DEG = 0.6;
+
+function buildRegionalField(metro, clusters) {
+  const bounds = {
+    latMin: metro.lat - REGIONAL_HALF_SPAN_DEG,
+    latMax: metro.lat + REGIONAL_HALF_SPAN_DEG,
+    lngMin: metro.lng - REGIONAL_HALF_SPAN_DEG,
+    lngMax: metro.lng + REGIONAL_HALF_SPAN_DEG,
+  };
+  return buildField(clusters, bounds, REGIONAL_GRID_SIZE, REGIONAL_SIGMA_DEG, 0.04);
+}
+
+// ---- Level 3: City (generated around a regional hotspot) -------------------
+// Produces mock "leads" (clickable dots with sales-relevant stats) + a
+// smooth field built from those leads.
 const STREET_NAMES = [
   'Maple', 'Sunset', 'Palm', 'Cedar', 'Willow', 'Magnolia', 'Live Oak',
   'Lakeview', 'Ridgeline', 'Hillcrest', 'Bayview', 'Orchard',
 ];
 
-function generateCityData(hotspot) {
+function generateCityLeads(hotspot) {
   const rand = seededRandom(hashString(hotspot.id + '-city'));
-  const points = [];
   const leadClusters = 3 + Math.floor(rand() * 2); // 3-4 lead pins
   const leads = [];
 
@@ -120,20 +181,42 @@ function generateCityData(hotspot) {
       avgRoofSqft,
       estAnnualSavings,
     });
-
-    const pointsInCluster = 25 + Math.floor(rand() * 25);
-    for (let j = 0; j < pointsInCluster; j++) {
-      points.push([
-        lat + (rand() - 0.5) * 0.02,
-        lng + (rand() - 0.5) * 0.02,
-        clamp01(opportunity + (rand() - 0.5) * 0.2),
-      ]);
-    }
   }
-
-  return { points, leads };
+  return leads;
 }
 
-function clamp01(n) {
-  return Math.max(0.08, Math.min(1, n));
+const CITY_HALF_SPAN_DEG = 0.09;
+const CITY_GRID_SIZE = 24;
+const CITY_SIGMA_DEG = 0.025;
+
+function buildCityField(hotspot, leads) {
+  const bounds = {
+    latMin: hotspot.lat - CITY_HALF_SPAN_DEG,
+    latMax: hotspot.lat + CITY_HALF_SPAN_DEG,
+    lngMin: hotspot.lng - CITY_HALF_SPAN_DEG,
+    lngMax: hotspot.lng + CITY_HALF_SPAN_DEG,
+  };
+  return buildField(leads, bounds, CITY_GRID_SIZE, CITY_SIGMA_DEG, 0.05);
+}
+
+// ---- Precompute everything once at load -------------------------------
+// Attaches ._regionalField / ._clusters onto each metro, and
+// ._cityField / ._leads onto each cluster, so drill-down clicks are pure
+// cache lookups with zero generation cost.
+let GLOBAL_FIELD = null;
+
+function precomputeAllData() {
+  GLOBAL_FIELD = buildGlobalField();
+
+  GLOBAL_METROS.forEach((metro) => {
+    const clusters = generateRegionalClusters(metro);
+    metro._clusters = clusters;
+    metro._regionalField = buildRegionalField(metro, clusters);
+
+    clusters.forEach((cluster) => {
+      const leads = generateCityLeads(cluster);
+      cluster._leads = leads;
+      cluster._cityField = buildCityField(cluster, leads);
+    });
+  });
 }

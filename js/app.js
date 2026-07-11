@@ -253,13 +253,9 @@ function setStateTooltips() {
     if (currentLevel === 'usa') {
       const cov = STATE_COVERAGE[abbr] !== undefined ? STATE_COVERAGE[abbr] : 0.2;
       l.bindTooltip(l.feature.properties.name + ' — ' + pct(cov) + ' renewable coverage', { sticky: true, direction: 'top' });
-    } else if (abbr === selectedAbbr) {
-      if (currentLevel === 'city') {
-        l.bindTooltip(ORLANDO.name + ' — ' + pct(ORLANDO.coverage) + ' renewable coverage', { sticky: true, direction: 'top' });
-      }
-      // hood level: no polygon tooltip — only the house dots are interactive,
-      // so hovering the gaps between homes stays clean.
     }
+    // city/hood levels: no polygon tooltip — hovering the gaps between
+    // bubbles or houses stays clean; only the markers carry info.
   });
 }
 
@@ -383,11 +379,15 @@ function goState(abbr, opts) {
       });
   };
 
-  const bounds = stateFeatureBounds(abbr);
+  // Frame the city bubbles rather than the full state polygon — tighter zoom.
+  const stateCities = CITY_STATS[abbr] || [];
+  const bounds = stateCities.length >= 3
+    ? L.latLngBounds(stateCities.map((c) => [c.lat, c.lng])).pad(0.10)
+    : (stateFeatureBounds(abbr) ? stateFeatureBounds(abbr).pad(0.08) : null);
   transition({
-    fly: fly && bounds ? () => map.flyToBounds(bounds.pad(0.08), { duration: 0.7 }) : null,
+    fly: fly && bounds ? () => map.flyToBounds(bounds, { duration: 0.7 }) : null,
     populate,
-    });
+  });
 
   setLegend(stateName(abbr) + ' — City Coverage', 'Bigger, redder circles = more homes without renewables. Hover a city, or click to drill in.');
   renderBreadcrumb([{ label: 'USA', go: () => goUSA() }, { label: stateName(abbr) }]);

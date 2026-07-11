@@ -187,6 +187,20 @@ html, body {
   font-weight: 600;
 }
 
+/* Street name labels in the parcel (lead map) view */
+.street-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #8a94ab;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+.street-label::before { display: none; }
+
 /* Neighborhood name labels shown at the city (house) level */
 .hood-label {
   background: transparent;

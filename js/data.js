@@ -1,23 +1,22 @@
 /*
- * data.js
- * Mock data layer for the BloomKnights solar coverage demo.
+ * data.js -- Mock data layer for the BloomKnights solar coverage demo.
  *
- * METRIC
- * ------
- * "coverage" = share of households in an area using solar / renewable energy
- * (0 = none, 1 = fully covered). One color rule everywhere on the site:
- * red = no coverage ... blue = high coverage (see colorForCoverage in app.js).
+ * METRIC: "coverage" = share of households using solar/renewables
+ * (0 = none -> red, 1 = full -> blue). Same color rule at every level.
  *
- * GEOGRAPHY IS REAL, NUMBERS ARE FAKE
- * -----------------------------------
- * State boundaries + city coordinates come from js/geo-data.js (US Census /
- * GeoNames data), so everything lands exactly where it should on the map.
- * Coverage percentages and house-level details are synthesized (deterministic,
- * seeded) for the hackathon demo. Florida / Orlando values are hand-tuned
- * since that's the demo path; other regions ride on seeded generation.
+ * DEMO PATH (hackathon): USA -> Florida -> Orlando -> Pine Hills.
+ * Only the demo path is clickable; everything else is hover-metrics only.
+ *
+ * PINE HILLS LEAD MAP = REAL BUILDINGS
+ * ------------------------------------
+ * The house level fetches real building positions + street names around
+ * Pine Hills from OpenStreetMap (Overpass API) IN THE BROWSER, caches them
+ * in localStorage (so the demo works offline after one successful load),
+ * and colors each real building with demo coverage values. If the fetch
+ * fails entirely, a synthetic plat (own drawn street grid) renders instead
+ * so the demo never breaks.
  */
 
-// ---- Deterministic PRNG (same input -> same demo data every load) ---------
 function seededRandom(seed) {
   let s = seed % 2147483647;
   if (s <= 0) s += 2147483646;
@@ -40,9 +39,7 @@ function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
 
-// ---- Level 1: coverage by state (choropleth values) ------------------------
-// Hand-authored so the national map reads like an electoral map with a clear
-// story: sunbelt + west lead, coal country lags. FL sits mid-low = opportunity.
+// ---- Level 1: coverage by state --------------------------------------------
 const STATE_COVERAGE = {
   AL: 0.15, AK: 0.09, AZ: 0.72, AR: 0.17, CA: 0.79, CO: 0.55, CT: 0.45,
   DE: 0.36, DC: 0.50, FL: 0.42, GA: 0.33, HI: 0.84, ID: 0.31, IL: 0.30,
@@ -54,9 +51,7 @@ const STATE_COVERAGE = {
   WI: 0.23, WY: 0.14,
 };
 
-// ---- Level 2: coverage by city ---------------------------------------------
-// Florida is the demo path -> hand-tuned per city. Everywhere else: state
-// coverage +/- seeded jitter.
+// ---- Level 2: coverage by city (FL hand-tuned = demo path) ------------------
 const FL_CITY_COVERAGE = {
   'Orlando': 0.40, 'Jacksonville': 0.27, 'Miami': 0.52, 'Tampa': 0.38,
   'St. Petersburg': 0.55, 'Hialeah': 0.22, 'Tallahassee': 0.44,
@@ -73,132 +68,243 @@ function cityCoverage(stateAbbr, city) {
   return clamp(STATE_COVERAGE[stateAbbr] + (rand() - 0.5) * 0.36, 0.04, 0.92);
 }
 
-// Rough household count from population (avg ~2.6 people / household).
-function cityHouseholds(city) {
-  return Math.round(city.pop * 0.38);
-}
-
-// Precomputed once at boot: US_CITIES + coverage + household stats.
-// CITY_STATS[abbr] = [{name, lat, lng, pop, coverage, households, uncovered}]
 const CITY_STATS = {};
 
 function precomputeAllData() {
-  Object.keys(US_CITIES).forEach((abbr) => {
-    CITY_STATS[abbr] = US_CITIES[abbr].map((c) => {
+  Object.keys(US_CITIES).forEach(function (abbr) {
+    CITY_STATS[abbr] = US_CITIES[abbr].map(function (c) {
       const coverage = cityCoverage(abbr, c);
-      const households = cityHouseholds(c);
-      return {
-        ...c,
+      const households = Math.round(c.pop * 0.38);
+      return Object.assign({}, c, {
         id: abbr.toLowerCase() + '-' + c.name.toLowerCase().replace(/[^a-z]+/g, '-'),
-        coverage,
-        households,
+        coverage: coverage,
+        households: households,
         uncovered: Math.round(households * (1 - coverage)),
-      };
+      });
     });
   });
 }
 
-// ---- Level 3: houses --------------------------------------------------------
-// Houses are generated per city as clustered NEIGHBORHOODS (coverage is
-// spatially correlated -- whole streets adopt solar together), laid out on a
-// small suburban street grid around the real city center. Lazy + cached so
-// nothing is generated until a city is opened.
+// ---- Level 3: Orlando neighborhoods (bubble level) ---------------------------
+const ORLANDO_HOODS = [
+  { name: 'Winter Park',   lat: 28.596, lng: -81.351, coverage: 0.72, households: 12400 },
+  { name: 'Baldwin Park',  lat: 28.567, lng: -81.327, coverage: 0.62, households: 5200 },
+  { name: 'College Park',  lat: 28.570, lng: -81.390, coverage: 0.48, households: 7800 },
+  { name: 'Downtown',      lat: 28.543, lng: -81.373, coverage: 0.38, households: 9600 },
+  { name: 'Milk District', lat: 28.539, lng: -81.350, coverage: 0.44, households: 4300 },
+  { name: 'Conway',        lat: 28.499, lng: -81.351, coverage: 0.30, households: 6100 },
+  { name: 'MetroWest',     lat: 28.516, lng: -81.468, coverage: 0.34, households: 11800 },
+  { name: 'Pine Hills',    lat: 28.578, lng: -81.454, coverage: 0.14, households: 21500 },
+  { name: 'Lake Nona',     lat: 28.402, lng: -81.253, coverage: 0.58, households: 8900 },
+].map(function (h) {
+  return Object.assign({}, h, { uncovered: Math.round(h.households * (1 - h.coverage)) });
+});
 
-// Curated Orlando neighborhoods (real districts, approx. real locations) so
-// the hero demo drill-down looks intentional, not random.
-const ORLANDO_NEIGHBORHOODS = [
-  { name: 'Winter Park',   lat: 28.596, lng: -81.351, base: 0.72 },
-  { name: 'Baldwin Park',  lat: 28.567, lng: -81.327, base: 0.62 },
-  { name: 'College Park',  lat: 28.570, lng: -81.390, base: 0.48 },
-  { name: 'Downtown',      lat: 28.543, lng: -81.373, base: 0.38 },
-  { name: 'Milk District', lat: 28.539, lng: -81.350, base: 0.44 },
-  { name: 'Conway',        lat: 28.499, lng: -81.351, base: 0.30 },
-  { name: 'MetroWest',     lat: 28.516, lng: -81.468, base: 0.34 },
-  { name: 'Pine Hills',    lat: 28.578, lng: -81.454, base: 0.14 },
-  { name: 'Lake Nona',     lat: 28.402, lng: -81.253, base: 0.58 },
+const HERO_HOOD_NAME = 'Pine Hills';
+
+// ---- Level 4a: REAL Pine Hills buildings from OpenStreetMap ------------------
+// Bbox = the residential pocket just east of Pine Hills Rd / north of Silver
+// Star Rd. ~0.7 x 1.0 km -> a few hundred buildings, small enough to fetch
+// fast and cache.
+const REAL_HOOD_BBOX = { s: 28.5742, w: -81.4593, n: 28.5808, e: -81.4487 };
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
 ];
+const HOOD_CACHE_KEY = 'bloomknights-pinehills-osm-v1';
 
-const GENERIC_HOOD_NAMES = [
-  'Northside', 'Riverview', 'Oak Grove', 'Sunset Hills', 'Eastwood',
-  'Lakeside', 'Old Town', 'Fairview', 'Meadowbrook', 'Highland Park',
-];
-
-const STREET_NAMES = [
-  'Maple', 'Sunset', 'Palm', 'Cedar', 'Willow', 'Magnolia', 'Live Oak',
-  'Lakeview', 'Ridgeline', 'Hillcrest', 'Bayview', 'Orchard',
-];
-const STREET_SUFFIXES = ['St', 'Ave', 'Dr', 'Ln', 'Ct', 'Way'];
-
-function generateNeighborhoods(cityStat) {
-  if (cityStat.id === 'fl-orlando') return ORLANDO_NEIGHBORHOODS;
-
-  const rand = seededRandom(hashString(cityStat.id + '-hoods'));
-  const count = 4 + Math.floor(rand() * 3); // 4-6
-  const hoods = [];
-  for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2 + rand() * 0.8;
-    const dist = 0.012 + rand() * 0.03; // stay near the real city center
-    hoods.push({
-      name: GENERIC_HOOD_NAMES[(i + Math.floor(rand() * 3)) % GENERIC_HOOD_NAMES.length],
-      lat: cityStat.lat + Math.cos(angle) * dist,
-      lng: cityStat.lng + Math.sin(angle) * dist * 1.15,
-      base: clamp(cityStat.coverage + (rand() - 0.5) * 0.5, 0.05, 0.9),
-    });
-  }
-  return hoods;
+function overpassQuery() {
+  const b = REAL_HOOD_BBOX;
+  const bbox = b.s + ',' + b.w + ',' + b.n + ',' + b.e;
+  return '[out:json][timeout:20];' +
+    'way["building"](' + bbox + ');out center;' +
+    'way["highway"]["name"](' + bbox + ');out geom;';
 }
 
-// Suburban mini-grid per neighborhood: rows of houses along east-west streets.
-function generateHousesForHood(cityStat, hood, hoodIndex) {
-  const rand = seededRandom(hashString(cityStat.id + '-' + hood.name + hoodIndex));
-  const rows = 5 + Math.floor(rand() * 3);      // streets
-  const cols = 6 + Math.floor(rand() * 4);      // houses per street
-  const rowGap = 0.00165;                        // ~180m between streets
-  const colGap = 0.00105;                        // ~100m between houses
-  const houses = [];
-
-  const streetOfRow = [];
-  for (let r = 0; r < rows; r++) {
-    streetOfRow.push(
-      STREET_NAMES[Math.floor(rand() * STREET_NAMES.length)] + ' ' +
-      STREET_SUFFIXES[Math.floor(rand() * STREET_SUFFIXES.length)]
-    );
-  }
-
-  const lat0 = hood.lat - (rows / 2) * rowGap;
-  const lng0 = hood.lng - (cols / 2) * colGap;
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (rand() < 0.16) continue; // gaps -> looks organic, not a perfect grid
-      const coverage = clamp(hood.base + (rand() - 0.5) * 0.34, 0.02, 0.98);
-      const roofSqft = 1300 + Math.floor(rand() * 1200);
-      houses.push({
-        lat: lat0 + r * rowGap + (rand() - 0.5) * 0.0003,
-        lng: lng0 + c * colGap + (rand() - 0.5) * 0.0002,
-        coverage,
-        hood: hood.name,
-        address: (100 + c * 8 + Math.floor(rand() * 7)) + ' ' + streetOfRow[r],
-        roofSqft,
-        hasSolar: coverage >= 0.5,
-        // Sales pitch: the LESS covered a home is, the more it saves by going solar.
-        estAnnualSavings: Math.round((520 + roofSqft * 0.9) * (1 - coverage) + 240),
+// Overpass JSON -> { buildings: [{lat,lng}], streets: [{name,kind,path}] }
+function parseOverpass(json) {
+  const buildings = [];
+  const streets = [];
+  (json.elements || []).forEach(function (el) {
+    if (el.center) {
+      buildings.push({ lat: el.center.lat, lng: el.center.lon });
+    } else if (el.geometry && el.tags && el.tags.name) {
+      streets.push({
+        name: el.tags.name,
+        kind: el.tags.highway || '',
+        path: el.geometry.map(function (g) { return [g.lat, g.lon]; }),
       });
     }
-  }
-  return houses;
+  });
+  return { buildings: buildings, streets: streets };
 }
 
-const _houseCache = {};
+// Browser-only. Resolves with parsed data (from cache when available).
+function fetchRealHood() {
+  try {
+    const cached = localStorage.getItem(HOOD_CACHE_KEY);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data && data.buildings && data.buildings.length) return Promise.resolve(data);
+    }
+  } catch (e) { /* private mode / corrupt cache -> refetch */ }
 
-function getCityDetail(cityStat) {
-  if (_houseCache[cityStat.id]) return _houseCache[cityStat.id];
-  const hoods = generateNeighborhoods(cityStat);
-  const houses = [];
-  hoods.forEach((hood, i) => {
-    houses.push.apply(houses, generateHousesForHood(cityStat, hood, i));
+  const tryEndpoint = function (i) {
+    if (i >= OVERPASS_ENDPOINTS.length) return Promise.reject(new Error('overpass unavailable'));
+    const ctrl = new AbortController();
+    const timer = setTimeout(function () { ctrl.abort(); }, 9000);
+    return fetch(OVERPASS_ENDPOINTS[i] + '?data=' + encodeURIComponent(overpassQuery()), { signal: ctrl.signal })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
+      .then(function (json) {
+        clearTimeout(timer);
+        const data = parseOverpass(json);
+        if (!data.buildings.length) throw new Error('no buildings in response');
+        try { localStorage.setItem(HOOD_CACHE_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
+        return data;
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        return tryEndpoint(i + 1);
+      });
+  };
+  return tryEndpoint(0);
+}
+
+// Point -> polyline squared distance (degree space; fine at this scale)
+function distToPath(lat, lng, path) {
+  let best = Infinity;
+  for (let i = 0; i < path.length - 1; i++) {
+    const ay = path[i][0], ax = path[i][1], by = path[i + 1][0], bx = path[i + 1][1];
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 ? ((lng - ax) * dx + (lat - ay) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const px = ax + t * dx, py = ay + t * dy;
+    const d2 = (lng - px) * (lng - px) + (lat - py) * (lat - py);
+    if (d2 < best) best = d2;
+  }
+  return best;
+}
+
+// Raw OSM -> demo houses. Deterministic coverage (seeded by coords) with a
+// "recently converted" blue pocket in the NE so the map tells a story.
+// Hero street = the residential street with the most houses; its homes are
+// the functional "canvass route" highlighted in the UI.
+function buildRealHood(raw) {
+  const pocket = { lat: REAL_HOOD_BBOX.n - 0.0009, lng: REAL_HOOD_BBOX.e - 0.0014 };
+  const sigma = 0.0018;
+  const counts = {};
+
+  const houses = raw.buildings.map(function (bld) {
+    const rand = seededRandom(hashString('ph' + Math.round(bld.lat * 1e5) + ':' + Math.round(bld.lng * 1e5)));
+
+    let bestD = Infinity, bestStreet = null;
+    raw.streets.forEach(function (st) {
+      const d = distToPath(bld.lat, bld.lng, st.path);
+      if (d < bestD) { bestD = d; bestStreet = st; }
+    });
+    const streetName = bestStreet ? bestStreet.name : 'Pine Hills Rd';
+    counts[streetName] = (counts[streetName] || 0) + 1;
+
+    const dLat = bld.lat - pocket.lat, dLng = bld.lng - pocket.lng;
+    const boost = 0.62 * Math.exp(-(dLat * dLat + dLng * dLng) / (2 * sigma * sigma));
+    const coverage = clamp(0.10 + boost + (rand() - 0.5) * 0.14, 0.02, 0.95);
+    const roofSqft = 1250 + Math.floor(rand() * 1150);
+
+    return {
+      lat: bld.lat,
+      lng: bld.lng,
+      coverage: coverage,
+      hasSolar: coverage >= 0.5,
+      street: streetName,
+      address: (4300 + Math.round((bld.lng - REAL_HOOD_BBOX.w) * 90000)) + ' ' + streetName,
+      roofSqft: roofSqft,
+      estAnnualSavings: Math.round((520 + roofSqft * 0.9) * (1 - coverage) + 240),
+    };
   });
-  const detail = { hoods, houses };
-  _houseCache[cityStat.id] = detail;
-  return detail;
+
+  let heroName = null, heroCount = 0;
+  raw.streets.forEach(function (st) {
+    const n = counts[st.name] || 0;
+    const residential = st.kind === 'residential' || st.kind === 'tertiary' || st.kind === 'unclassified' || st.kind === 'living_street';
+    if (residential && n > heroCount) { heroName = st.name; heroCount = n; }
+  });
+
+  return {
+    houses: houses,
+    heroName: heroName,
+    heroPaths: heroName ? raw.streets.filter(function (s) { return s.name === heroName; }).map(function (s) { return s.path; }) : [],
+    real: true,
+  };
+}
+
+// ---- Level 4b: synthetic plat FALLBACK (only if OSM fetch fails) -------------
+const PLAT_STREETS = ['Bloom Ave', 'Silver Pine Dr', 'Willow Bend St', 'Sun Meadow Ln', 'Knight Grove Rd'];
+const PLAT_CROSS = ['Palm Ct', 'Cedar Xing', 'Solar Way'];
+
+function buildHeroPlat() {
+  const rand = seededRandom(hashString('pine-hills-plat'));
+  const lat0 = 28.5737;
+  const lng0 = -81.4601, lng1 = -81.4479;
+  const streetGap = 0.0016;
+  const houseStep = 0.00082;
+  const setback = 0.00034;
+  const HALF_LAT = 0.00013, HALF_LNG = 0.00015;
+
+  const streets = [];
+  const houses = [];
+
+  const crossXs = [lng0 + 0.0031, lng0 + 0.0064, lng0 + 0.0097];
+  const latTop = lat0 + (PLAT_STREETS.length - 1) * streetGap;
+  const cross = crossXs.map(function (x, j) {
+    return { name: PLAT_CROSS[j], path: [[lat0 - 0.0006, x], [latTop + 0.0006, x]], cross: true };
+  });
+
+  const pocket = { lat: 28.5794, lng: -81.4489 };
+  const sigma = 0.0018;
+
+  PLAT_STREETS.forEach(function (name, i) {
+    const y = lat0 + i * streetGap;
+    streets.push({ name: name, path: [[y, lng0 - 0.0004], [y, lng1 + 0.0004]], cross: false });
+
+    [-1, 1].forEach(function (side) {
+      const rowLat = y + side * setback;
+      for (let x = lng0 + 0.0007; x <= lng1 - 0.0005; x += houseStep) {
+        if (crossXs.some(function (cx) { return Math.abs(x - cx) < 0.00045; })) continue;
+        if (rand() < 0.07) continue;
+
+        const dLat = rowLat - pocket.lat, dLng = x - pocket.lng;
+        const boost = 0.62 * Math.exp(-(dLat * dLat + dLng * dLng) / (2 * sigma * sigma));
+        const coverage = clamp(0.10 + boost + (rand() - 0.5) * 0.14, 0.02, 0.95);
+        const roofSqft = 1250 + Math.floor(rand() * 1150);
+
+        houses.push({
+          lat: rowLat + (rand() - 0.5) * 0.00006,
+          lng: x + (rand() - 0.5) * 0.00006,
+          halfLat: HALF_LAT, halfLng: HALF_LNG,
+          coverage: coverage,
+          hasSolar: coverage >= 0.5,
+          address: (4300 + Math.round((x - lng0) * 90000)) + ' ' + name,
+          street: name,
+          roofSqft: roofSqft,
+          estAnnualSavings: Math.round((520 + roofSqft * 0.9) * (1 - coverage) + 240),
+        });
+      }
+    });
+  });
+
+  return {
+    streets: streets.concat(cross),
+    houses: houses,
+    bounds: [[lat0 - 0.0012, lng0 - 0.0008], [latTop + 0.0012, lng1 + 0.0008]],
+  };
+}
+
+let HERO_PLAT = null;
+function getHeroPlat() {
+  if (!HERO_PLAT) HERO_PLAT = buildHeroPlat();
+  return HERO_PLAT;
 }

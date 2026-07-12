@@ -211,9 +211,7 @@ function showListingDetail(listing, hood) {
     ['Est. production', listing.annualProduction],
     ['Shade', listing.shade],
     ['Utility bill', listing.utilityBill],
-    ['Payback period', listing.paybackYears],
     ['Incentives', listing.incentives],
-    ['Match score', listing.score != null ? listing.score + '/100' : null],
   ].filter((row) => row[1])
     .map((row) => `<div><span>${row[0]}</span><strong>${row[1]}</strong></div>`).join('');
 

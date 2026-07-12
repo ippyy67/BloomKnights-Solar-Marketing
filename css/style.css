@@ -975,3 +975,17 @@ html, body {
   color: var(--bloom-muted);
   opacity: 0.75;
 }
+
+/* OneEthos financing link at the bottom of the detail card */
+.ethos-cta {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+  text-decoration: none;
+  background: linear-gradient(120deg, #1e7a4f, #2ea56b);
+  border: none;
+  color: #fff;
+  padding: 12px;
+}
+
+.ethos-cta:hover { filter: brightness(1.12); }

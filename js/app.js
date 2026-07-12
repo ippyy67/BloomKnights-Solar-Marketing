@@ -244,6 +244,9 @@ function showListingDetail(listing, hood) {
         ? `<div class="ai-summary" id="ai-summary" data-address="${listing.address}">${summaryHtml}</div>` : ''}
       <h5 class="detail-section-title">Solar snapshot${listing.liveData ? ' <span class="live-badge">live · NREL</span>' : ''}</h5>
       <div class="snapshot-grid">${snapshotRows}</div>
+      <a class="cta ethos-cta" href="https://www.oneethos.com" target="_blank" rel="noopener">
+        Explore solar financing with OneEthos &rarr;
+      </a>
     </div>
   `, { detailMode: true, dock: currentLevel === 'hood' });
 

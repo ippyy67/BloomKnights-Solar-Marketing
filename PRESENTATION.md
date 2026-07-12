@@ -1,0 +1,102 @@
+# SunView Florida — Presentation Notes
+
+## Tech stack
+
+**Mapping & visualization**
+- **Leaflet 1.9.4** — interactive map engine, canvas rendering for performance
+- **CARTO dark basemap** (OpenStreetMap tile data) — the dark theme
+- **OpenStreetMap Overpass API** — real building footprints for the Pine Hills
+  neighborhood, fetched live in the browser and cached in localStorage
+- **us-atlas** (US Census TopoJSON) — real state boundary polygons
+- **all-the-cities** — real coordinates/populations for Florida cities
+  (both baked into `js/geo-data.js` by our Node pipeline `tools/gen-geodata.js`)
+
+**AI**
+- **Google Gemini API** (`gemini-3-flash`, free tier) — per-home financial and
+  environmental analysis, generated live on the detail card
+- **Structured JSON output** — we constrain Gemini with a `responseSchema`, so
+  the model returns typed fields (system cost, payback, loan terms, CO₂ offset…)
+  instead of free text. The UI renders data, never raw prose.
+- **Model fallback chain** — if a model is deprecated or rate-limited, the app
+  automatically falls through to the next one (this saved us: 2.0-flash was
+  shut down June 1, 2026)
+
+**Engineering**
+- **Vanilla HTML/CSS/JS** — zero frameworks, zero build step; the whole app is
+  static files that run anywhere
+- **Resilience by design** — offline fallback neighborhood if the OSM fetch
+  fails, photo fallback chain, cached AI results (localStorage) so repeat views
+  are instant and rate limits can't break a live demo
+- **Git team workflow** — feature branch per member (map drill-down, listing
+  cards, Gemini backend), merged for the demo
+
+## Points worth making to judges
+
+1. **The user is the solar contractor, not the homeowner.** Everything is
+   framed as lead generation: coverage gaps, lead scores, canvass routes,
+   door-opener scripts.
+2. **Progressive drill-down tells a story** — USA choropleth → Florida cities →
+   Orlando neighborhoods → individual real homes, one visualization per level,
+   with a consistent color rule (red = no coverage → blue = full coverage).
+3. **The featured home's numbers are real.** Peak sun hours come live from
+   NREL's Solar Resource API and production/savings/payback from NREL PVWatts
+   v8 — the same model the solar industry quotes from — for Pine Hills'
+   actual coordinates (look for the green 'live · NREL' badge on the card).
+4. **The houses are real.** At the street level, every dot is an actual
+   building footprint pulled live from OpenStreetMap — not decoration.
+5. **AI with guardrails.** Structured output means the model can't hallucinate
+   the UI; caching means the demo never re-bills or stalls; the fallback chain
+   means a model deprecation can't kill it.
+6. **It degrades gracefully.** No network? The neighborhood falls back to a
+   modeled plat. Model gone? Next in the chain. Photo 404? Placeholder.
+
+## How to talk about the data (the honest, strong version)
+
+Don't say "hardcoded." Say **modeled demo data over real geography, with a
+drop-in production data path.** Concretely:
+
+> "All the geography is real — state boundaries from the US Census, real city
+> locations, and live building footprints from OpenStreetMap. The coverage
+> percentages and listing details are a **modeled demo dataset**: values seeded
+> to realistic distributions and calibrated to public benchmarks — we use the
+> real Florida average electricity rate ($0.154/kWh) and the real national
+> household average (903 kWh/month) to derive usage from a bill. In production,
+> each modeled layer has a direct replacement: **Google Solar API / Project
+> Sunroof** for roof and irradiance data, **EIA** open data for rates and
+> consumption, **NREL PVWatts** for production estimates, and county property
+> appraiser parcel records for roof size and age. We deliberately spent our
+> hackathon hours on the pipeline and UX, because the data plumbing is
+> swappable — the architecture already treats data as a layer."
+
+Shorter version if asked point-blank "is this data real?":
+
+> "The map and buildings are real, and on the featured home the solar numbers
+> are real too — peak sun hours from NREL's Solar Resource API and
+> production, savings, and payback from NREL PVWatts, live at those
+> coordinates. The remaining fields are modeled for the demo, and each one
+> has a named production API it would come from."
+
+## Citable stats (memorize two or three)
+
+- ~7% of U.S. homes have rooftop solar (~4.7M households) — SEIA
+- Hawaii: 45% of single-family homes; California: ~20% — our map's high end
+- **Florida is #3 in the nation for installed solar capacity** (SEIA 2026)
+- Orlando: #32 of 70 U.S. cities for solar (Shining Cities), city goal of
+  100% renewable electricity by 2050
+- LBNL: solar adopters' median income is $115k vs $75k nationally, and
+  non-White-majority tracts adopt less at every income level — **Pine Hills
+  being red is the documented solar equity gap, and closing it is the
+  product's purpose.** Full citations: DATA_SOURCES.md.
+
+## Production data sources (name-drop list)
+
+| On-screen number        | Demo source            | Production source                          |
+| ----------------------- | ---------------------- | ------------------------------------------ |
+| State/city/hood coverage index | Normalized from EIA-861 / Project Sunroof / DeepSolar orderings | Same, computed directly |
+| Building footprints     | **Real (OSM, live)**   | Same, or Microsoft Building Footprints     |
+| Roof size / age / type  | Modeled                | County property appraiser (Orange County)  |
+| Peak sun hours          | **Real (NREL, live)**  | Same (NREL Solar Resource API)             |
+| Shade                   | Modeled                | Google Solar API, LIDAR analysis           |
+| Utility bill / usage    | Derived from real rates| Utility APIs / customer-provided bills     |
+| Production / savings / payback | **Real (NREL PVWatts v8, live)** | Same + installer pricing data |
+| CO₂ / en

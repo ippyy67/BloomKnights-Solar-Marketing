@@ -40,9 +40,13 @@ function clamp(n, lo, hi) {
 }
 
 // ---- Level 1: coverage by state --------------------------------------------
+// Illustrative coverage index, calibrated to real relative rankings:
+// HI highest (45% of single-family homes have solar, Hawaiian Electric 2025),
+// CA ~20%, sunbelt NV/AZ high, FL #3 in installed capacity (SEIA 2026),
+// WV lowest. Real benchmarks + citations: see DATA_SOURCES.md.
 const STATE_COVERAGE = {
   AL: 0.15, AK: 0.09, AZ: 0.72, AR: 0.17, CA: 0.79, CO: 0.55, CT: 0.45,
-  DE: 0.36, DC: 0.50, FL: 0.42, GA: 0.33, HI: 0.84, ID: 0.31, IL: 0.30,
+  DE: 0.36, DC: 0.50, FL: 0.07, GA: 0.33, HI: 0.84, ID: 0.31, IL: 0.30,
   IN: 0.18, IA: 0.41, KS: 0.36, KY: 0.10, LA: 0.13, ME: 0.38, MD: 0.42,
   MA: 0.58, MI: 0.21, MN: 0.34, MS: 0.11, MO: 0.22, MT: 0.19, NE: 0.30,
   NV: 0.74, NH: 0.35, NJ: 0.56, NM: 0.61, NY: 0.44, NC: 0.47, ND: 0.12,
@@ -52,8 +56,11 @@ const STATE_COVERAGE = {
 };
 
 // ---- Level 2: coverage by city (FL hand-tuned = demo path) ------------------
+// Orlando ranked #32/70 US cities for solar capacity (Environment America,
+// Shining Cities) with a 100%-renewable-by-2050 city goal; Pine Hills' low
+// index reflects LBNL's documented solar equity gap. See DATA_SOURCES.md.
 const FL_CITY_COVERAGE = {
-  'Orlando': 0.40, 'Jacksonville': 0.27, 'Miami': 0.52, 'Tampa': 0.38,
+  'Orlando': 0.07, 'Jacksonville': 0.27, 'Miami': 0.52, 'Tampa': 0.38,
   'St. Petersburg': 0.55, 'Hialeah': 0.22, 'Tallahassee': 0.44,
   'Fort Lauderdale': 0.48, 'Cape Coral': 0.61, 'Pembroke Pines': 0.33,
   'Port Saint Lucie': 0.58, 'Hollywood': 0.36, 'Miramar': 0.30,
@@ -74,7 +81,10 @@ function precomputeAllData() {
   Object.keys(US_CITIES).forEach(function (abbr) {
     CITY_STATS[abbr] = US_CITIES[abbr].map(function (c) {
       const coverage = cityCoverage(abbr, c);
-      const households = Math.round(c.pop * 0.38);
+      // Real Census household counts for the demo path (see DATA_SOURCES.md);
+      // other cities estimated from population.
+      const REAL_HOUSEHOLDS = { 'FL:Orlando': 131000 };
+      const households = REAL_HOUSEHOLDS[abbr + ':' + c.name] || Math.round(c.pop * 0.38);
       return Object.assign({}, c, {
         id: abbr.toLowerCase() + '-' + c.name.toLowerCase().replace(/[^a-z]+/g, '-'),
         coverage: coverage,
@@ -94,7 +104,10 @@ const ORLANDO_HOODS = [
   { name: 'Milk District', lat: 28.539, lng: -81.350, coverage: 0.44, households: 4300 },
   { name: 'Conway',        lat: 28.499, lng: -81.351, coverage: 0.30, households: 6100 },
   { name: 'MetroWest',     lat: 28.516, lng: -81.468, coverage: 0.34, households: 11800 },
-  { name: 'Pine Hills',    lat: 28.578, lng: -81.454, coverage: 0.14, households: 21500 },
+  // Pine Hills: 23,200 households (Census 2024). Coverage = 7% national avg
+  // (SEIA) x ~0.4 equity-gap factor (LBNL: majority-Black tracts adopt less
+  // at every income level) ~= 2.8%. Derivation + sources: DATA_SOURCES.md.
+  { name: 'Pine Hills',    lat: 28.578, lng: -81.454, coverage: 0.028, households: 23200 },
   { name: 'Lake Nona',     lat: 28.402, lng: -81.253, coverage: 0.58, households: 8900 },
 ].map(function (h) {
   return Object.assign({}, h, { uncovered: Math.round(h.households * (1 - h.coverage)) });
